@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_can.h
+led.h
 
 Copyright (c) 2014, Jonathan Nutzmann
 
@@ -14,51 +14,62 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef CAN_H
-#define CAN_H
+#ifndef LED_H
+#define LED_H
 
 /****************************************************************************
  * Includes
  ***************************************************************************/
 
-#include "d1k.h"
-#include "stm32f4xx_can.h"
+#include "stdbool.h"
+#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_gpio.h"
 
 /****************************************************************************
- * Definitions
+ * Defines
  ***************************************************************************/
 
-#define CAN_PACKET_ID_MASK_ALLOW_ALL  ((CANPacketIDMask_t)0xFFFFFFFF)
-
-#define D1K_CAN_DEFAULT_BAUDRATE 125000
+#define MAX_LED_COUNT			(8)
 
 /****************************************************************************
  * Typedefs
  ***************************************************************************/
 
-typedef uint32 CANPacketIDMask_t;
-typedef uint32 CANPacketId_t;
+typedef uint8_t LED_ID_t;
 
 /**
- * CAN Packet Handler
- * @param packet - new packet to be handled.
+ * These are purposes that can be assigned to LEDs to give D1K control of their state.
  */
-typedef void (*CANRXHandlerFxn)(CanRxMsg * packet);
+typedef enum {
+	LED_PURPOSE_CAN = 0,
+	LED_PURPOSE_ERROR,
+	LED_PURPOSE_APPLICATION,
+	LED_PURPOSE_COUNT
+} LEDPurpose_t;
 
-typedef struct
-{
-	CANPacketIDMask_t  mask;
-	CANPacketId_t      idAfterMask;
-	CANRXHandlerFxn    callback;
-} CANRXEntry_t;
+typedef struct {
+	LEDPurpose_t purpose;
+	uint32_t GPIO_Pin;
+	GPIO_TypeDef* GIOPx;
+	uint32_t GPIO_Clock;
+	uint32_t on_time;
+	uint32_t off_time;
+} LEDInitStruct_t;
 
 /****************************************************************************
  * Public Prototypes
  ***************************************************************************/
 
-void d1k_CAN_Init            ( CAN_TypeDef * canModule, uint32 baudRate);
-void d1k_CAN_SendPacket      ( CAN_TypeDef * canModule, CanTxMsg * packet );
-void d1k_CAN_SendPacket_ISR  ( CAN_TypeDef * canModule, CanTxMsg * packet );
-void d1k_CAN_RegisterHandler ( CAN_TypeDef * canModule, CANRXEntry_t * entry );
+void led_init(LED_ID_t led_id, LEDInitStruct_t *led);
 
-#endif /* CAN_H_ */
+void led_on(LED_ID_t n);
+void led_off(LED_ID_t n);
+void led_toggle(LED_ID_t n);
+bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time);
+
+void led_on_purpose(LEDPurpose_t n);
+void led_off_purpose(LEDPurpose_t n);
+bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time);
+
+
+#endif

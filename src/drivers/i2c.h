@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_i2c.h
+i2c.h
 
 Copyright (c) 2014, Jonathan Nutzmann, Arlo Siemsen
 
@@ -14,8 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef D1K_I2C_H
-#define D1K_I2C_H
+#ifndef I2C_H
+#define I2C_H
 
 /****************************************************************************
  * Public Prototypes
@@ -23,17 +23,16 @@ GNU General Public License for more details.
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_i2c.h"
-#include "d1k.h"
 
-void d1k_i2c_Init    ( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit );
+void i2c_init    ( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit );
 
-void d1k_i2c_Restart ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
-void d1k_i2c_Start   ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
+void i2c_restart ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
+void i2c_start   ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
 
-uint8_t d1k_i2c_ReadAck  ( I2C_TypeDef* I2Cx );
-uint8_t d1k_i2c_ReadNack ( I2C_TypeDef* I2Cx );
-void d1k_i2c_Write       ( I2C_TypeDef* I2Cx, uint8_t data );
+uint8_t i2c_read_ack  ( I2C_TypeDef* I2Cx );
+uint8_t i2c_read_nack ( I2C_TypeDef* I2Cx );
+void i2c_write       ( I2C_TypeDef* I2Cx, uint8_t data );
 
-void d1k_i2c_Stop ( I2C_TypeDef* I2Cx );
+void i2c_stop ( I2C_TypeDef* I2Cx );
 
-#endif /* D1K_I2C_H_ */
+#endif /* I2C_H_ */

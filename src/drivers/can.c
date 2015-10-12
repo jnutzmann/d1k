@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_can.c
+can.c
 
 Copyright (c) 2014, Jonathan Nutzmann
 
@@ -18,17 +18,14 @@ GNU General Public License for more details.
  * Includes
  ***************************************************************************/
 
-#include "d1k.h"
-#include "string.h"
-#include "d1k_can.h"
-#include "d1k_led.h"
-
+#include "can.h"
+#include "FreeRTOS.h"
+#include "led.h"
+#include "misc.h"
+#include "queue.h"
 #include "stm32f4xx_can.h"
 #include "stm32f4xx_rcc.h"
-
-#include "FreeRTOS.h"
-#include "queue.h"
-
+#include "string.h"
 
 /****************************************************************************
  * Definitions
@@ -41,19 +38,19 @@ GNU General Public License for more details.
  * Global Variables
  ***************************************************************************/
 
-static CANRXEntry_t can1RXTable[CAN_MAX_PACKET_HANDLER];
-static CANRXEntry_t can2RXTable[CAN_MAX_PACKET_HANDLER];
+static CANRXEntry_t can1_rx_table[CAN_MAX_PACKET_HANDLER];
+static CANRXEntry_t can2_rx_table[CAN_MAX_PACKET_HANDLER];
 
-static uint32 can1RXPacketHandlerCount = 0;
-static uint32 can2RXPacketHandlerCount = 0;
+static uint32_t can1_rx_packet_handler_count = 0;
+static uint32_t can2_rx_packet_handler_count = 0;
 
-static xQueueHandle can1TXQueue, can2TXQueue;
+static xQueueHandle can1_tx_queue, can2_tx_queue;
 
 /****************************************************************************
  * Private Prototypes
  ***************************************************************************/
 
-static void d1k_CAN_DispatchRx( CAN_TypeDef * canModule, CanRxMsg * packet );
+static void can_dispatch_rx(CAN_TypeDef *can_module, CanRxMsg *packet);
 
 /****************************************************************************
  * Public Functions
@@ -67,42 +64,45 @@ static void d1k_CAN_DispatchRx( CAN_TypeDef * canModule, CanRxMsg * packet );
  * @param RXTable - Receive table with definitions of packets to be handled and their
  * corresponding handlers.
  */
-void d1k_CAN_Init ( CAN_TypeDef * canModule, uint32 baudRate)
+void can_init(CAN_TypeDef *can_module, uint32_t baud_rate)
 {
+	// TODO: order of can perph init matters here!  We should do some sort of check.
+
 	RCC_ClocksTypeDef RCC_ClocksStatus;
 	RCC_GetClocksFreq(&RCC_ClocksStatus);
 
-	if ( canModule == CAN1 )
+	if ( can_module == CAN1 )
 	{
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE); // turn on CAN1 clock
-		can1TXQueue = xQueueCreate(CAN_TX_BUFFER_DEPTH,sizeof(CanTxMsg));
+		can1_tx_queue = xQueueCreate(CAN_TX_BUFFER_DEPTH,sizeof(CanTxMsg));
 	}
-	else if ( canModule == CAN2 )
+	else if ( can_module == CAN2 )
 	{
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN2, ENABLE); // turn on CAN2 clock
-		can2TXQueue = xQueueCreate(CAN_TX_BUFFER_DEPTH,sizeof(CanTxMsg));
+		can2_tx_queue = xQueueCreate(CAN_TX_BUFFER_DEPTH,sizeof(CanTxMsg));
 	}
 
-	CAN_InitTypeDef canInit;
-	CAN_StructInit(&canInit);
+	CAN_InitTypeDef can_init_struct;
+	CAN_StructInit(&can_init_struct);
 
 	// SYNC SEG : 1TQ
 	// BS1		: 8TQ
 	// BS2		: 5TQ
 
-	canInit.CAN_BS1 = CAN_BS1_8tq;
-	canInit.CAN_BS2 = CAN_BS2_5tq;
-	canInit.CAN_SJW = CAN_SJW_1tq;
-	canInit.CAN_Prescaler = RCC_ClocksStatus.PCLK1_Frequency / baudRate / (3 + canInit.CAN_BS1 + canInit.CAN_BS2);
-	canInit.CAN_Mode = CAN_Mode_Normal;
-	canInit.CAN_TXFP = ENABLE;
-	canInit.CAN_ABOM = ENABLE;
-	CAN_Init(canModule, &canInit);
+	can_init_struct.CAN_BS1 = CAN_BS1_8tq;
+	can_init_struct.CAN_BS2 = CAN_BS2_5tq;
+	can_init_struct.CAN_SJW = CAN_SJW_1tq;
+	can_init_struct.CAN_Prescaler = RCC_ClocksStatus.PCLK1_Frequency /
+							baud_rate / (3 + can_init_struct.CAN_BS1 + can_init_struct.CAN_BS2);
+	can_init_struct.CAN_Mode = CAN_Mode_Normal;
+	can_init_struct.CAN_TXFP = ENABLE;
+	can_init_struct.CAN_ABOM = ENABLE;
+	CAN_Init(can_module, &can_init_struct);
 
 	// For now, create a filter that passes all messages.
 	// TODO: Autogenerate these?
 	CAN_FilterInitTypeDef CAN_FilterInitStructure;
-	CAN_FilterInitStructure.CAN_FilterNumber = (canModule == CAN1) ? 0 : 14;
+	CAN_FilterInitStructure.CAN_FilterNumber = (can_module == CAN1) ? 0 : 14;
 	CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
 	CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
 	CAN_FilterInitStructure.CAN_FilterIdHigh = 0x0000;
@@ -118,19 +118,19 @@ void d1k_CAN_Init ( CAN_TypeDef * canModule, uint32 baudRate)
 	// TODO: RX FIFO overrun interrupt?
 	// TODO: Bus error interrupts?
 	// TODO: Add second FIFO?
-	CAN_ITConfig(canModule, CAN_IT_FMP0, ENABLE);
+	CAN_ITConfig(can_module, CAN_IT_FMP0, ENABLE);
 
 	// Set up the NVIC for the receive interrupt.
 	NVIC_InitTypeDef  NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannel = (canModule == CAN1) ? CAN1_RX0_IRQn : CAN2_RX0_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = (can_module == CAN1) ? CAN1_RX0_IRQn : CAN2_RX0_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
 	// Enable the transmit interrupt as well.  Note that the transmit interrupt will only be enabled
-	// when the buffer becomes full in d1k_CAN_SendPacket.
-	NVIC_InitStructure.NVIC_IRQChannel = (canModule == CAN1) ? CAN1_TX_IRQn : CAN2_TX_IRQn;
+	// when the buffer becomes full in can_send_packet.
+	NVIC_InitStructure.NVIC_IRQChannel = (can_module == CAN1) ? CAN1_TX_IRQn : CAN2_TX_IRQn;
 	NVIC_Init(&NVIC_InitStructure);
 }
 
@@ -139,14 +139,14 @@ void d1k_CAN_Init ( CAN_TypeDef * canModule, uint32 baudRate)
  * @param canModule - CAN module to use (CAN1 or CAN2)
  * @param packet - Packet to be sent.
  */
-void d1k_CAN_SendPacket ( CAN_TypeDef * canModule, CanTxMsg * packet )
+void can_send_packet (CAN_TypeDef * can_module, CanTxMsg * packet )
 {
-	if ( CAN_Transmit(canModule,packet) == CAN_TxStatus_NoMailBox )
+	if ( CAN_Transmit(can_module,packet) == CAN_TxStatus_NoMailBox )
 	{
 		// TODO: What should we set this timeout to?
-		xQueueSend( (canModule==CAN1) ? can1TXQueue : can2TXQueue, packet, 0 );
+		xQueueSend( (can_module==CAN1) ? can1_tx_queue : can2_tx_queue, packet, 0 );
 
-		CAN_ITConfig(canModule,CAN_IT_TME,ENABLE);
+		CAN_ITConfig(can_module, CAN_IT_TME, ENABLE);
 	}
 }
 
@@ -155,13 +155,13 @@ void d1k_CAN_SendPacket ( CAN_TypeDef * canModule, CanTxMsg * packet )
  * @param canModule - CAN module to use (CAN1 or CAN2)
  * @param packet - Packet to be sent.
  */
-void d1k_CAN_SendPacket_ISR ( CAN_TypeDef * canModule, CanTxMsg * packet )
+void can_send_packet_isr(CAN_TypeDef *can_module, CanTxMsg * packet )
 {
-	if ( CAN_Transmit(canModule,packet) == CAN_TxStatus_NoMailBox )
+	if (CAN_Transmit(can_module,packet) == CAN_TxStatus_NoMailBox)
 	{
-		xQueueSendFromISR( (canModule==CAN1) ? can1TXQueue : can2TXQueue, packet, NULL );
+		xQueueSendFromISR((can_module ==CAN1) ? can1_tx_queue : can2_tx_queue, packet, NULL );
 
-		CAN_ITConfig(canModule,CAN_IT_TME,ENABLE);
+		CAN_ITConfig(can_module,CAN_IT_TME,ENABLE);
 	}
 }
 
@@ -171,17 +171,17 @@ void d1k_CAN_SendPacket_ISR ( CAN_TypeDef * canModule, CanTxMsg * packet )
  * @param canModule - CAN module to associate the handler with (CAN1 or CAN2).
  * @param entry - Entry to add to the list.
  */
-void d1k_CAN_RegisterHandler( CAN_TypeDef * canModule, CANRXEntry_t * entry )
+void can_register_handler(CAN_TypeDef *can_module, CANRXEntry_t * entry)
 {
-	if ( canModule == CAN1 )
+	if ( can_module == CAN1 )
 	{
-		memcpy( &(can1RXTable[can1RXPacketHandlerCount]), entry, sizeof(CANRXEntry_t) );
-		can1RXPacketHandlerCount++;
+		memcpy( &(can1_rx_table[can1_rx_packet_handler_count]), entry, sizeof(CANRXEntry_t) );
+		can1_rx_packet_handler_count++;
 	}
 	else
 	{
-		memcpy( &(can2RXTable[can2RXPacketHandlerCount]), entry, sizeof(CANRXEntry_t) );
-		can2RXPacketHandlerCount++;
+		memcpy( &(can2_rx_table[can2_rx_packet_handler_count]), entry, sizeof(CANRXEntry_t) );
+		can2_rx_packet_handler_count++;
 	}
 }
 
@@ -190,18 +190,18 @@ void d1k_CAN_RegisterHandler( CAN_TypeDef * canModule, CANRXEntry_t * entry )
  * Private Functions
  ***************************************************************************/
 
-static void d1k_CAN_DispatchRx( CAN_TypeDef * canModule, CanRxMsg * packet )
+static void can_dispatch_rx(CAN_TypeDef *can_module, CanRxMsg *packet)
 {
-	CANRXEntry_t * table = (canModule == CAN1) ? can1RXTable : can2RXTable;
-	uint32 handlerCount = (canModule == CAN1) ? can1RXPacketHandlerCount : can2RXPacketHandlerCount;
+	CANRXEntry_t * table = (can_module == CAN1) ? can1_rx_table : can2_rx_table;
+	uint32_t handlerCount = (can_module == CAN1) ? can1_rx_packet_handler_count : can2_rx_packet_handler_count;
 
 	// Note: This purposely allows more than one callback to be registered for
 	// a given packet.
 
-	for (uint16 i = 0; i < handlerCount; i++ )
+	for (uint16_t i = 0; i < handlerCount; i++ )
 	{
 		// TODO: support Extended IDs?
-		if ( (packet->StdId & table[i].mask ) == table[i].idAfterMask )
+		if ( (packet->StdId & table[i].mask ) == table[i].id_after_mask)
 		{
 			table[i].callback(packet);
 		}
@@ -214,34 +214,34 @@ static void d1k_CAN_DispatchRx( CAN_TypeDef * canModule, CanRxMsg * packet )
 
 void CAN1_RX0_IRQHandler ( void )
 {
-	d1k_LED_OnPurpose(D1K_LED_PURPOSE_CAN);
+	led_on_purpose(LED_PURPOSE_CAN);
 	CanRxMsg packet;
 	CAN_Receive( CAN1, CAN_FIFO0, &packet );
-	d1k_CAN_DispatchRx( CAN1, &packet );
-	d1k_LED_OffPurpose(D1K_LED_PURPOSE_CAN);
+	can_dispatch_rx(CAN1, &packet);
+	led_off_purpose(LED_PURPOSE_CAN);
 }
 
 void CAN2_RX0_IRQHandler ( void )
 {
-	d1k_LED_OnPurpose(D1K_LED_PURPOSE_CAN);
+	led_on_purpose(LED_PURPOSE_CAN);
 	CanRxMsg packet;
 	CAN_Receive( CAN2, CAN_FIFO0, &packet );
-	d1k_CAN_DispatchRx( CAN2, &packet );
-	d1k_LED_OffPurpose(D1K_LED_PURPOSE_CAN);
+	can_dispatch_rx(CAN2, &packet);
+	led_off_purpose(LED_PURPOSE_CAN);
 }
 
 void CAN1_TX_IRQHandler ( void )
 {
-	d1k_LED_OnPurpose(D1K_LED_PURPOSE_CAN);
+	led_on_purpose(LED_PURPOSE_CAN);
 
 	CanTxMsg toSend;
 
-	if ( xQueueReceiveFromISR(can1TXQueue,&toSend,NULL) == pdTRUE )
+	if ( xQueueReceiveFromISR(can1_tx_queue,&toSend,NULL) == pdTRUE )
 	{
 		if ( CAN_Transmit(CAN1,&toSend) == CAN_TxStatus_NoMailBox )
 		{
 			// For some reason, we failed again.  Push it back onto the front.
-			xQueueSendToFrontFromISR(can1TXQueue,&toSend,NULL);
+			xQueueSendToFrontFromISR(can1_tx_queue,&toSend,NULL);
 		}
 	}
 	else
@@ -251,21 +251,21 @@ void CAN1_TX_IRQHandler ( void )
 		CAN_ITConfig(CAN1,CAN_IT_TME,DISABLE);
 	}
 
-	d1k_LED_OffPurpose(D1K_LED_PURPOSE_CAN);
+	led_off_purpose(LED_PURPOSE_CAN);
 }
 
 void CAN2_TX_IRQHandler ( void )
 {
-	d1k_LED_OnPurpose(D1K_LED_PURPOSE_CAN);
+	led_on_purpose(LED_PURPOSE_CAN);
 
 	CanTxMsg toSend;
 
-	if ( xQueueReceiveFromISR(can2TXQueue,&toSend,NULL) == pdTRUE )
+	if ( xQueueReceiveFromISR(can2_tx_queue,&toSend,NULL) == pdTRUE )
 	{
 		if ( CAN_Transmit(CAN2,&toSend) == CAN_TxStatus_NoMailBox )
 		{
 			// For some reason, we failed again.  Push it back onto the front.
-			xQueueSendToFrontFromISR(can2TXQueue,&toSend,NULL);
+			xQueueSendToFrontFromISR(can2_tx_queue,&toSend,NULL);
 		}
 	}
 	else
@@ -275,9 +275,8 @@ void CAN2_TX_IRQHandler ( void )
 		CAN_ITConfig(CAN2,CAN_IT_TME,DISABLE);
 	}
 
-	d1k_LED_OffPurpose(D1K_LED_PURPOSE_CAN);
+	led_off_purpose(LED_PURPOSE_CAN);
 }
-
 
 
 

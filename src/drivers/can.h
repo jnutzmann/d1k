@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_portal.h
+can.h
 
 Copyright (c) 2014, Jonathan Nutzmann
 
@@ -14,27 +14,48 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef D1K_PORTAL_H
-#define D1K_PORTAL_H
+#ifndef CAN_H
+#define CAN_H
 
 /****************************************************************************
  * Includes
  ***************************************************************************/
 
-#include "d1k.h"
+#include "stm32f4xx_can.h"
+
+/****************************************************************************
+ * Definitions
+ ***************************************************************************/
+
+#define CAN_PACKET_ID_MASK_ALLOW_ALL  ((CANPacketIDMask_t)0xFFFFFFFF)
 
 /****************************************************************************
  * Typedefs
  ***************************************************************************/
 
-typedef void (*d1kPortalFxn)( int argc, char ** argv );
+typedef uint32_t CANPacketIDMask_t;
+typedef uint32_t CANPacketId_t;
+
+/**
+ * CAN Packet Handler
+ * @param packet - new packet to be handled.
+ */
+typedef void (*CANRXHandlerFxn)(CanRxMsg * packet);
+
+typedef struct
+{
+	CANPacketIDMask_t  mask;
+	CANPacketId_t      id_after_mask;
+	CANRXHandlerFxn    callback;
+} CANRXEntry_t;
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Prototypes
  ***************************************************************************/
 
-void d1k_portal_Init             ( void );
-void d1k_portal_RegisterFunction ( char* cmd, d1kPortalFxn fxn);
+void can_init(CAN_TypeDef *can_module, uint32_t baud_rate);
+void can_send_packet(CAN_TypeDef *can_module, CanTxMsg *packet);
+void can_send_packet_isr(CAN_TypeDef *can_module, CanTxMsg *packet);
+void can_register_handler(CAN_TypeDef *can_module, CANRXEntry_t *entry);
 
-
-#endif /* D1K_PORTAL_H_ */
+#endif /* CAN_H */

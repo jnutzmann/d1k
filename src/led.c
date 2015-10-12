@@ -19,110 +19,69 @@ GNU General Public License for more details.
  * Includes
  ***************************************************************************/
 
+#include "led.h"
 #include "FreeRTOS.h"
-#include "task.h"
-
-#include "d1k_led.h"
 #include "string.h"
-
-/****************************************************************************
- * Defines
- ***************************************************************************/
-
-#define D1K_LED_GPIO_PORT                   GPIOC
-#define D1K_LED_GPIO_CLK                    RCC_AHB1Periph_GPIOC
-
-#define D1K_LEDB_PIN                        GPIO_Pin_13
-#define D1K_LEDR_PIN                        GPIO_Pin_14
-#define D1K_LEDY_PIN                        GPIO_Pin_15
-
-#define D1K_LEDB_PIN                        GPIO_Pin_13
-#define D1K_LEDR_PIN                        GPIO_Pin_14
-#define D1K_LEDY_PIN                        GPIO_Pin_15
+#include "task.h"
 
 /****************************************************************************
  * Global Variables
  ***************************************************************************/
 
-static d1k_LEDInitStruct_t leds [MAX_LED_COUNT];
-static d1k_LED_ID_t purposes [D1K_NUM_PURPOSES];
-static xTaskHandle flashHandles [MAX_LED_COUNT];
-static bool tasksInited = false;
+static LEDInitStruct_t leds [MAX_LED_COUNT];
+static LED_ID_t purposes [LED_PURPOSE_COUNT];
+static xTaskHandle flash_handles[MAX_LED_COUNT];
+static bool tasks_inited = false;
 
 /****************************************************************************
  * Private Prototypes
  ***************************************************************************/
 
-static void d1k_LED_Flash_Task ( void * pvParameters );
+static void led_flash_task(void *pvParameters);
 
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
 
 /**
- * Initializes LEDs to default configuration for boards used on D1.
- */
-void d1k_LED_InitDefault ( void )
-{
-	d1k_LEDInitStruct_t l;
-
-	l.GIOPx = D1K_LED_GPIO_PORT;
-	l.GPIO_Clock = RCC_AHB1Periph_GPIOC;
-	l.offTime = 0;
-	l.onTime = 0;
-	l.purpose = D1K_LED_PURPOSE_APPLICATION;
-	l.GPIO_Pin = D1K_LEDB_PIN;
-	d1k_LED_Init( D1K_LED_BLUE, &l );
-
-	l.GPIO_Pin = D1K_LEDR_PIN;
-	l.purpose = D1K_LED_PURPOSE_ERROR;
-	d1k_LED_Init( D1K_LED_RED, &l );
-
-	l.GPIO_Pin = D1K_LEDY_PIN;
-	l.purpose = D1K_LED_PURPOSE_CAN;
-	d1k_LED_Init( D1K_LED_YELLOW, &l );
-
-}
-
-/**
  * Initializes LED for use.
  * @param LEDId - ID assigned to the LED.  Must be unique for each LED registered.
  * @param led - LED init structure.
  */
-void d1k_LED_Init ( d1k_LED_ID_t LEDId, d1k_LEDInitStruct_t* led )
+void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 {
-	GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitTypeDef gpio_init_struct;
 
 	/* Enable the GPIO_LED Clock */
 	RCC_AHB1PeriphClockCmd(led->GPIO_Clock, ENABLE);
 
 	/* Configure the GPIO_LED pin */
-	GPIO_InitStructure.GPIO_Pin = led->GPIO_Pin;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_Init(led->GIOPx, &GPIO_InitStructure);
+	gpio_init_struct.GPIO_Pin = led->GPIO_Pin;
+	gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
+	gpio_init_struct.GPIO_OType = GPIO_OType_PP;
+	gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpio_init_struct.GPIO_Speed = GPIO_Speed_25MHz;
+	GPIO_Init(led->GIOPx, &gpio_init_struct);
 
-	memcpy( &(leds[LEDId]), led, sizeof(d1k_LEDInitStruct_t) );
+	memcpy(&(leds[led_id]), led, sizeof(LEDInitStruct_t));
 
 	// If set up to flash, do that.  Otherwise, turn it off.
-	if (!d1k_LED_Flash(LEDId,led->onTime,led->offTime))
+	if (!led_flash(led_id, led->on_time, led->off_time))
 	{
-		d1k_LED_Off( LEDId );
+		led_off(led_id);
 	}
 
-	purposes[led->purpose] = LEDId;
+	purposes[led->purpose] = led_id;
 
 	// Clean up the array so that we know if tasks have been created.
-	if (!tasksInited)
+	if (!tasks_inited)
 	{
-		for ( uint16 i = 0; i < MAX_LED_COUNT; i++ )
+		for ( uint16_t i = 0; i < MAX_LED_COUNT; i++ )
 		{
-			flashHandles[i] = NULL;
+			flash_handles[i] = NULL;
 		}
 
-		tasksInited = true;
+		tasks_inited = true;
 	}
 }
 
@@ -130,7 +89,7 @@ void d1k_LED_Init ( d1k_LED_ID_t LEDId, d1k_LEDInitStruct_t* led )
  * Turns LED on.
  * @param n - LED Unique ID.
  */
-void d1k_LED_On( d1k_LED_ID_t n )
+void led_on(LED_ID_t n)
 {
 	leds[n].GIOPx->BSRRL = leds[n].GPIO_Pin;
 }
@@ -139,7 +98,7 @@ void d1k_LED_On( d1k_LED_ID_t n )
  * Turns LED off.
  * @param n - LED Unique ID.
  */
-void d1k_LED_Off( d1k_LED_ID_t n )
+void led_off(LED_ID_t n)
 {
 	leds[n].GIOPx->BSRRH = leds[n].GPIO_Pin;
 }
@@ -148,7 +107,7 @@ void d1k_LED_Off( d1k_LED_ID_t n )
  * Toggles LED.
  * @param n - LED Unique ID.
  */
-void d1k_LED_Toggle( d1k_LED_ID_t n )
+void led_toggle(LED_ID_t n)
 {
 	if ( leds[n].GIOPx->ODR & leds[n].GPIO_Pin )
 	{
@@ -158,8 +117,6 @@ void d1k_LED_Toggle( d1k_LED_ID_t n )
 	{
 		leds[n].GIOPx->BSRRL = leds[n].GPIO_Pin;
 	}
-
-
 }
 
 
@@ -170,36 +127,36 @@ void d1k_LED_Toggle( d1k_LED_ID_t n )
  * @param offTime - Time the LED is off (in ms)
  * @return TRUE if parameters are valid and the flash task is running, otherwise false.
  */
-bool d1k_LED_Flash ( d1k_LED_ID_t n, uint32 onTime, uint32 offTime )
+bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time)
 {
-	if ( offTime > 0 && onTime > 0 )
+	if ( off_time > 0 && on_time > 0 )
 	{
-		leds[n].offTime = offTime;
-		leds[n].onTime = onTime;
+		leds[n].off_time = off_time;
+		leds[n].on_time = on_time;
 
 		// If we have not yet created the task, create it.
-		if ( flashHandles[n] == NULL )
+		if ( flash_handles[n] == NULL )
 		{
-			xTaskCreate(d1k_LED_Flash_Task,"LEDFLSH",256,&(leds[n]),1,&(flashHandles[n]));
+			xTaskCreate(led_flash_task,"LEDFLSH",256,&(leds[n]),1,&(flash_handles[n]));
 			return true;
 		}
-
 		// If a task is already created, resume it.
-		if ( eTaskStateGet( flashHandles[n] ) == eSuspended )
-		{
-			xTaskResumeFromISR( flashHandles[n] );
+		else if ( eTaskGetState(flash_handles[n]) == eSuspended ) {
+			xTaskResumeFromISR(flash_handles[n]);
 			return true;
 		}
-
 		// Task is already running, just update it.
-		return true;
+		else
+		{
+			return true;
+		}
 	}
 	else
 	{
 		// If a task is running, it will suspend itself.
-		leds[n].onTime = 0;
-		leds[n].offTime = 0;
-		d1k_LED_Off(n);
+		leds[n].on_time = 0;
+		leds[n].off_time = 0;
+		led_off(n);
 	}
 
 	return false;
@@ -209,18 +166,18 @@ bool d1k_LED_Flash ( d1k_LED_ID_t n, uint32 onTime, uint32 offTime )
  * Turns LED on.
  * @param n - Purpose of the LED to turn on.
  */
-void d1k_LED_OnPurpose( d1k_LEDPurpose_t n )
+void led_on_purpose(LEDPurpose_t n)
 {
-	d1k_LED_On(purposes[n]);
+	led_on(purposes[n]);
 }
 
 /**
  * Turns LED off.
  * @param n - Purpose of the LED to turn on.
  */
-void d1k_LED_OffPurpose( d1k_LEDPurpose_t n )
+void led_off_purpose(LEDPurpose_t n)
 {
-	d1k_LED_Off(purposes[n]);
+	led_off(purposes[n]);
 }
 
 /**
@@ -230,9 +187,9 @@ void d1k_LED_OffPurpose( d1k_LEDPurpose_t n )
  * @param offTime - Time the LED is off (in ms)
  * @return TRUE if parameters are valid and the flash task is running, otherwise false.
  */
-bool d1k_LED_FlashPurpose( d1k_LEDPurpose_t n, uint32 onTime, uint32 offTime )
+bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time)
 {
-	return d1k_LED_Flash( purposes[n], onTime, offTime );
+	return led_flash(purposes[n], on_time, off_time);
 }
 
 /****************************************************************************
@@ -243,26 +200,26 @@ bool d1k_LED_FlashPurpose( d1k_LEDPurpose_t n, uint32 onTime, uint32 offTime )
  * Task to flash LEDs
  * @param pvParameters - Unique ID of the LED to flash.
  */
-static void d1k_LED_Flash_Task ( void * pvParameters )
+static void led_flash_task(void *pvParameters)
 {
-	d1k_LEDInitStruct_t* led = (d1k_LEDInitStruct_t*)pvParameters;
+	LEDInitStruct_t * led = (LEDInitStruct_t *)pvParameters;
 
 	while (1)
 	{
-		if (led->onTime == 0 || led->offTime == 0)
+		if (led->on_time == 0 || led->off_time == 0)
 		{
 			vTaskSuspend(NULL);
 		}
 
 		led->GIOPx->BSRRL = led->GPIO_Pin;
 
-		vTaskDelay(led->onTime);
+		vTaskDelay(led->on_time);
 
-		if (led->onTime == 0 || led->offTime == 0)
+		if (led->on_time == 0 || led->off_time == 0)
 		{
 			vTaskSuspend(NULL);
 		}
 		led->GIOPx->BSRRH = led->GPIO_Pin;
-		vTaskDelay(led->offTime);
+		vTaskDelay(led->off_time);
 	}
 }
