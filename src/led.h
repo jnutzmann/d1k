@@ -50,7 +50,7 @@ typedef enum {
 typedef struct {
 	LEDPurpose_t purpose;
 	uint32_t GPIO_Pin;
-	GPIO_TypeDef* GIOPx;
+	GPIO_TypeDef* GPIOx;
 	uint32_t GPIO_Clock;
 	uint32_t on_time;
 	uint32_t off_time;

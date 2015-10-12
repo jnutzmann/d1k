@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_led.c
+led.c
 
 Copyright (c) 2014, Jonathan Nutzmann
 
@@ -50,29 +50,6 @@ static void led_flash_task(void *pvParameters);
  */
 void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 {
-	GPIO_InitTypeDef gpio_init_struct;
-
-	/* Enable the GPIO_LED Clock */
-	RCC_AHB1PeriphClockCmd(led->GPIO_Clock, ENABLE);
-
-	/* Configure the GPIO_LED pin */
-	gpio_init_struct.GPIO_Pin = led->GPIO_Pin;
-	gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
-	gpio_init_struct.GPIO_OType = GPIO_OType_PP;
-	gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	gpio_init_struct.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_Init(led->GIOPx, &gpio_init_struct);
-
-	memcpy(&(leds[led_id]), led, sizeof(LEDInitStruct_t));
-
-	// If set up to flash, do that.  Otherwise, turn it off.
-	if (!led_flash(led_id, led->on_time, led->off_time))
-	{
-		led_off(led_id);
-	}
-
-	purposes[led->purpose] = led_id;
-
 	// Clean up the array so that we know if tasks have been created.
 	if (!tasks_inited)
 	{
@@ -83,6 +60,26 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 
 		tasks_inited = true;
 	}
+
+	GPIO_InitTypeDef gpio_init_struct;
+
+	// Enable the GPIO_LED Clock
+	RCC_AHB1PeriphClockCmd(led->GPIO_Clock, ENABLE);
+
+	// Configure the GPIO_LED pin
+	gpio_init_struct.GPIO_Pin = led->GPIO_Pin;
+	gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
+	gpio_init_struct.GPIO_OType = GPIO_OType_PP;
+	gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpio_init_struct.GPIO_Speed = GPIO_Speed_2MHz;
+	GPIO_Init(led->GPIOx, &gpio_init_struct);
+
+	memcpy(&(leds[led_id]), led, sizeof(LEDInitStruct_t));
+
+	// Set up the flash, or turn it off.
+	led_flash(led_id, led->on_time, led->off_time);
+
+	purposes[led->purpose] = led_id;
 }
 
 /**
@@ -91,7 +88,7 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
  */
 void led_on(LED_ID_t n)
 {
-	leds[n].GIOPx->BSRRL = leds[n].GPIO_Pin;
+	leds[n].GPIOx->BSRRL = leds[n].GPIO_Pin;
 }
 
 /**
@@ -100,7 +97,7 @@ void led_on(LED_ID_t n)
  */
 void led_off(LED_ID_t n)
 {
-	leds[n].GIOPx->BSRRH = leds[n].GPIO_Pin;
+	leds[n].GPIOx->BSRRH = leds[n].GPIO_Pin;
 }
 
 /**
@@ -109,13 +106,13 @@ void led_off(LED_ID_t n)
  */
 void led_toggle(LED_ID_t n)
 {
-	if ( leds[n].GIOPx->ODR & leds[n].GPIO_Pin )
+	if ( leds[n].GPIOx->ODR & leds[n].GPIO_Pin )
 	{
-		leds[n].GIOPx->BSRRH = leds[n].GPIO_Pin;
+		leds[n].GPIOx->BSRRH = leds[n].GPIO_Pin;
 	}
 	else
 	{
-		leds[n].GIOPx->BSRRL = leds[n].GPIO_Pin;
+		leds[n].GPIOx->BSRRL = leds[n].GPIO_Pin;
 	}
 }
 
@@ -137,14 +134,16 @@ bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time)
 		// If we have not yet created the task, create it.
 		if ( flash_handles[n] == NULL )
 		{
-			xTaskCreate(led_flash_task,"LEDFLSH",256,&(leds[n]),1,&(flash_handles[n]));
+			xTaskCreate(led_flash_task, "LEDFLSH", 256, &(leds[n]), 1, &(flash_handles[n]));
 			return true;
 		}
+
 		// If a task is already created, resume it.
 		else if ( eTaskGetState(flash_handles[n]) == eSuspended ) {
 			xTaskResumeFromISR(flash_handles[n]);
 			return true;
 		}
+
 		// Task is already running, just update it.
 		else
 		{
@@ -203,6 +202,7 @@ bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time)
 static void led_flash_task(void *pvParameters)
 {
 	LEDInitStruct_t * led = (LEDInitStruct_t *)pvParameters;
+    led->GPIOx->BSRRL = led->GPIO_Pin;
 
 	while (1)
 	{
@@ -211,7 +211,7 @@ static void led_flash_task(void *pvParameters)
 			vTaskSuspend(NULL);
 		}
 
-		led->GIOPx->BSRRL = led->GPIO_Pin;
+		led->GPIOx->BSRRL = led->GPIO_Pin;
 
 		vTaskDelay(led->on_time);
 
@@ -219,7 +219,9 @@ static void led_flash_task(void *pvParameters)
 		{
 			vTaskSuspend(NULL);
 		}
-		led->GIOPx->BSRRH = led->GPIO_Pin;
+
+		led->GPIOx->BSRRH = led->GPIO_Pin;
+
 		vTaskDelay(led->off_time);
 	}
 }
