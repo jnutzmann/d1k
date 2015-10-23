@@ -1,7 +1,7 @@
 /********************************************************************
-fram.h
+nvmem.h
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,7 +36,9 @@ typedef bool (*NvMemReadFxn) ( uint16_t address, void * data, size_t len, void* 
  * Public Functions
  ***************************************************************************/
 
-
+void nvmem_init ( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn, void* config );
+bool nvmem_write ( uint16_t address, void * data, size_t len );
+bool nvmem_read ( uint16_t address, void * data, size_t len );
 
 
 #endif /* NVMEM_H */

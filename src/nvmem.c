@@ -1,5 +1,5 @@
 /********************************************************************
-fram.c
+nvmem.c
 
 Copyright (c) 2015, Jonathan Nutzmann
 
@@ -33,7 +33,7 @@ static void* nvm_config = NULL;
  * Public Functions
  ***************************************************************************/
 
-void nvmem_init( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn, void* config )
+void nvmem_init ( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn, void* config )
 {
     nvm_read_fxn = read_fxn;
     nvm_write_fxn = write_fxn;
@@ -46,7 +46,7 @@ void nvmem_init( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn, void* config )
  * @param data - Data to write.
  * @param len - Length of the data.
  */
-bool nvmem_write( uint16_t address, void * data, size_t len )
+bool nvmem_write ( uint16_t address, void * data, size_t len )
 {
     if ( nvm_write_fxn != NULL )
     {
@@ -62,7 +62,7 @@ bool nvmem_write( uint16_t address, void * data, size_t len )
  * @param data - Location to put the data.
  * @param len - Length of data to read.
  */
-bool nvmem_read( uint16_t address, void * data, size_t len )
+bool nvmem_read ( uint16_t address, void * data, size_t len )
 {
     if ( nvm_read_fxn != NULL )
     {
