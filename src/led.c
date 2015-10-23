@@ -1,7 +1,7 @@
 /********************************************************************
 led.c
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ GNU General Public License for more details.
 static LEDInitStruct_t leds [MAX_LED_COUNT];
 static xTaskHandle flash_handles[MAX_LED_COUNT];
 static bool tasks_inited = false;
+static uint32_t inited_leds = 0;
 
 /****************************************************************************
  * Private Prototypes
@@ -47,7 +48,7 @@ static void led_flash_task(void *pvParameters);
  * @param LEDId - ID assigned to the LED.  Must be unique for each LED registered.
  * @param led - LED init structure.
  */
-void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
+bool led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 {
 	// Clean up the array so that we know if tasks have been created.
 	if (!tasks_inited)
@@ -59,6 +60,8 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 
 		tasks_inited = true;
 	}
+
+    if (led_id > MAX_LED_COUNT) return false;
 
 	GPIO_InitTypeDef gpio_init_struct;
 
@@ -76,8 +79,12 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 
 	memcpy(&(leds[led_id]), led, sizeof(LEDInitStruct_t));
 
-	// Set up the flash, or turn it off.
+    inited_leds |= 1 << led_id;
+
+    // Set up the flash, or turn it off.
 	led_flash(led_id, led->on_time, led->off_time);
+
+    return true;
 }
 
 /**
@@ -86,6 +93,7 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
  */
 void led_on(LED_ID_t n)
 {
+    if(!((n < MAX_LED_COUNT) && (1<<n & inited_leds))) return;
 	leds[n].GPIOx->BSRRL = leds[n].GPIO_Pin;
 }
 
@@ -95,6 +103,7 @@ void led_on(LED_ID_t n)
  */
 void led_off(LED_ID_t n)
 {
+    if(!((n < MAX_LED_COUNT) && (1<<n & inited_leds))) return;
 	leds[n].GPIOx->BSRRH = leds[n].GPIO_Pin;
 }
 
@@ -104,6 +113,8 @@ void led_off(LED_ID_t n)
  */
 void led_toggle(LED_ID_t n)
 {
+    if(!((n < MAX_LED_COUNT) && (1<<n & inited_leds))) return;
+
 	if ( leds[n].GPIOx->ODR & leds[n].GPIO_Pin )
 	{
 		leds[n].GPIOx->BSRRH = leds[n].GPIO_Pin;
@@ -124,6 +135,8 @@ void led_toggle(LED_ID_t n)
  */
 bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time)
 {
+    if(!((n < MAX_LED_COUNT) && (1<<n & inited_leds))) return false;
+
 	if (off_time > 0 && on_time > 0)
 	{
 		leds[n].off_time = off_time;

@@ -58,7 +58,7 @@ typedef struct {
  * Public Prototypes
  ***************************************************************************/
 
-void led_init(LED_ID_t led_id, LEDInitStruct_t *led);
+bool led_init(LED_ID_t led_id, LEDInitStruct_t *led);
 
 void led_on(LED_ID_t n);
 void led_off(LED_ID_t n);

@@ -214,25 +214,25 @@ static void can_dispatch_rx(CAN_TypeDef *can_module, CanRxMsg *packet)
 
 void CAN1_RX0_IRQHandler ( void )
 {
-	led_on_purpose(LED_PURPOSE_CAN);
+	led_on(LED_CAN);
 	CanRxMsg packet;
 	CAN_Receive( CAN1, CAN_FIFO0, &packet );
 	can_dispatch_rx(CAN1, &packet);
-	led_off_purpose(LED_PURPOSE_CAN);
+	led_off(LED_CAN);
 }
 
 void CAN2_RX0_IRQHandler ( void )
 {
-	led_on_purpose(LED_PURPOSE_CAN);
+	led_on(LED_CAN);
 	CanRxMsg packet;
 	CAN_Receive( CAN2, CAN_FIFO0, &packet );
 	can_dispatch_rx(CAN2, &packet);
-	led_off_purpose(LED_PURPOSE_CAN);
+	led_off(LED_CAN);
 }
 
 void CAN1_TX_IRQHandler ( void )
 {
-	led_on_purpose(LED_PURPOSE_CAN);
+	led_on(LED_CAN);
 
 	CanTxMsg toSend;
 
@@ -251,12 +251,12 @@ void CAN1_TX_IRQHandler ( void )
 		CAN_ITConfig(CAN1,CAN_IT_TME,DISABLE);
 	}
 
-	led_off_purpose(LED_PURPOSE_CAN);
+	led_off(LED_CAN);
 }
 
 void CAN2_TX_IRQHandler ( void )
 {
-	led_on_purpose(LED_PURPOSE_CAN);
+	led_on(LED_CAN);
 
 	CanTxMsg toSend;
 
@@ -275,7 +275,7 @@ void CAN2_TX_IRQHandler ( void )
 		CAN_ITConfig(CAN2,CAN_IT_TME,DISABLE);
 	}
 
-	led_off_purpose(LED_PURPOSE_CAN);
+	led_off(LED_CAN);
 }
 
 
