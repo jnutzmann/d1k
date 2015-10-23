@@ -29,7 +29,6 @@ GNU General Public License for more details.
  ***************************************************************************/
 
 static LEDInitStruct_t leds [MAX_LED_COUNT];
-static LED_ID_t purposes [LED_PURPOSE_COUNT];
 static xTaskHandle flash_handles[MAX_LED_COUNT];
 static bool tasks_inited = false;
 
@@ -79,8 +78,6 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 
 	// Set up the flash, or turn it off.
 	led_flash(led_id, led->on_time, led->off_time);
-
-	purposes[led->purpose] = led_id;
 }
 
 /**
@@ -160,36 +157,6 @@ bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time)
 	}
 
 	return false;
-}
-
-/**
- * Turns LED on.
- * @param n - Purpose of the LED to turn on.
- */
-void led_on_purpose(LEDPurpose_t n)
-{
-	led_on(purposes[n]);
-}
-
-/**
- * Turns LED off.
- * @param n - Purpose of the LED to turn on.
- */
-void led_off_purpose(LEDPurpose_t n)
-{
-	led_off(purposes[n]);
-}
-
-/**
- * Flashes an LED.
- * @param n - Purpose of the LED to flash.
- * @param onTime - Time the LED is on (in ms)
- * @param offTime - Time the LED is off (in ms)
- * @return TRUE if parameters are valid and the flash task is running, otherwise false.
- */
-bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time)
-{
-	return led_flash(purposes[n], on_time, off_time);
 }
 
 /****************************************************************************

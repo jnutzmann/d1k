@@ -1,7 +1,7 @@
 /********************************************************************
 led.h
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -41,14 +41,12 @@ typedef uint8_t LED_ID_t;
  * These are purposes that can be assigned to LEDs to give D1K control of their state.
  */
 typedef enum {
-	LED_PURPOSE_CAN = 0,
-	LED_PURPOSE_ERROR,
-	LED_PURPOSE_APPLICATION,
-	LED_PURPOSE_COUNT
+	LED_CAN = 0,
+	LED_ERROR,
+	LED_COUNT_CORE
 } LEDPurpose_t;
 
 typedef struct {
-	LEDPurpose_t purpose;
 	uint32_t GPIO_Pin;
 	GPIO_TypeDef* GPIOx;
 	uint32_t GPIO_Clock;
@@ -66,10 +64,5 @@ void led_on(LED_ID_t n);
 void led_off(LED_ID_t n);
 void led_toggle(LED_ID_t n);
 bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time);
-
-void led_on_purpose(LEDPurpose_t n);
-void led_off_purpose(LEDPurpose_t n);
-bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time);
-
 
 #endif
