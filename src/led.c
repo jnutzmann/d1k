@@ -73,6 +73,7 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 	gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	gpio_init_struct.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(led->GPIOx, &gpio_init_struct);
+    led_off(led_id);
 
 	memcpy(&(leds[led_id]), led, sizeof(LEDInitStruct_t));
 
@@ -126,7 +127,7 @@ void led_toggle(LED_ID_t n)
  */
 bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time)
 {
-	if ( off_time > 0 && on_time > 0 )
+	if (off_time > 0 && on_time > 0)
 	{
 		leds[n].off_time = off_time;
 		leds[n].on_time = on_time;

@@ -29,7 +29,7 @@ GNU General Public License for more details.
  * Defines
  ***************************************************************************/
 
-#define MAX_LED_COUNT			(8)
+#define MAX_LED_COUNT			(16)
 
 /****************************************************************************
  * Typedefs
