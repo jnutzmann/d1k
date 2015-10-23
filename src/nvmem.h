@@ -21,16 +21,22 @@ GNU General Public License for more details.
  * Includes
  ***************************************************************************/
 
-#include "drivers/i2c.h"
+#include "stdint.h"
 #include "stdlib.h"
+#include "stdbool.h"
+
+/****************************************************************************
+ * Typedefs
+ ***************************************************************************/
+
+typedef bool (*NvMemWriteFxn) ( uint16_t address, void * data, size_t len, void* nvmem_config );
+typedef bool (*NvMemReadFxn) ( uint16_t address, void * data, size_t len, void* nvmem_config );
 
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
 
-void fram_Init  ( I2C_TypeDef* I2Cx, uint32_t framSize, uint8_t deviceAddress );
-void fram_Write ( uint16_t address, void * data, size_t len );
-void fram_Read  ( uint16_t address, void * data, size_t len );
+
 
 
 #endif /* NVMEM_H */
