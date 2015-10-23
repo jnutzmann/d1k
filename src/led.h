@@ -29,7 +29,7 @@ GNU General Public License for more details.
  * Defines
  ***************************************************************************/
 
-#define MAX_LED_COUNT			(16)
+#define MAX_LED_COUNT            (16)
 
 /****************************************************************************
  * Typedefs
@@ -40,29 +40,31 @@ typedef uint8_t LED_ID_t;
 /**
  * These are purposes that can be assigned to LEDs to give D1K control of their state.
  */
-typedef enum {
-	LED_CAN = 0,
-	LED_ERROR,
-	LED_COUNT_CORE
+typedef enum 
+{
+    LED_CAN = 0,
+    LED_ERROR,
+    LED_COUNT_CORE
 } LEDPurpose_t;
 
-typedef struct {
-	uint32_t GPIO_Pin;
-	GPIO_TypeDef* GPIOx;
-	uint32_t GPIO_Clock;
-	uint32_t on_time;
-	uint32_t off_time;
+typedef struct 
+{
+    uint32_t GPIO_Pin;
+    GPIO_TypeDef* GPIOx;
+    uint32_t GPIO_Clock;
+    uint32_t on_time;
+    uint32_t off_time;
 } LEDInitStruct_t;
 
 /****************************************************************************
  * Public Prototypes
  ***************************************************************************/
 
-bool led_init(LED_ID_t led_id, LEDInitStruct_t *led);
+bool led_init ( LED_ID_t ld_id, LEDInitStruct_t *led );
 
-void led_on(LED_ID_t n);
-void led_off(LED_ID_t n);
-void led_toggle(LED_ID_t n);
-bool led_flash(LED_ID_t n, uint32_t on_time, uint32_t off_time);
+void led_on ( LED_ID_t n );
+void led_off ( LED_ID_t n );
+void led_toggle ( LED_ID_t n );
+bool led_flash ( LED_ID_t n, uint32_t on_time, uint32_t off_time );
 
 #endif
