@@ -53,7 +53,7 @@ void led_init(LED_ID_t led_id, LEDInitStruct_t *led)
 	// Clean up the array so that we know if tasks have been created.
 	if (!tasks_inited)
 	{
-		for ( uint16_t i = 0; i < MAX_LED_COUNT; i++ )
+		for (int i = 0; i < MAX_LED_COUNT; i++)
 		{
 			flash_handles[i] = NULL;
 		}
@@ -203,7 +203,6 @@ bool led_flash_purpose(LEDPurpose_t n, uint32_t on_time, uint32_t off_time)
 static void led_flash_task(void *pvParameters)
 {
 	LEDInitStruct_t * led = (LEDInitStruct_t *)pvParameters;
-    led->GPIOx->BSRRL = led->GPIO_Pin;
 
 	while (1)
 	{
