@@ -1,7 +1,7 @@
 /********************************************************************
-i2c.h
+mb85rcxxx.h
 
-Copyright (c) 2014, Jonathan Nutzmann, Arlo Siemsen
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,25 +14,20 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef I2C_H
-#define I2C_H
+#ifndef MC85RC_H
+#define MC85RC_H
 
 /****************************************************************************
- * Public Prototypes
+ * Includes
  ***************************************************************************/
 
-#include "stm32f4xx.h"
-#include "stm32f4xx_i2c.h"
+#include "i2c.h"
+#include "stdlib.h"
 
-void i2c_init    ( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit );
+/****************************************************************************
+ * Public Functions
+ ***************************************************************************/
 
-void i2c_restart ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
-void i2c_start   ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
+void mb85rcxx_init ( I2C_TypeDef *I2Cx, uint32_t size, uint8_t device_address );
 
-uint8_t i2c_read_ack  ( I2C_TypeDef* I2Cx );
-uint8_t i2c_read_nack ( I2C_TypeDef* I2Cx );
-void i2c_write       ( I2C_TypeDef* I2Cx, uint8_t data );
-
-void i2c_stop ( I2C_TypeDef* I2Cx );
-
-#endif /* I2C_H_ */
+#endif /* NVMEM_H */

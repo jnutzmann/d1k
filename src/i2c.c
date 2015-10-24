@@ -1,7 +1,7 @@
 /********************************************************************
 i2c.c
 
-Copyright (c) 2014, Jonathan Nutzmann, Arlo Siemsen
+Copyright (c) 2015, Jonathan Nutzmann, Arlo Siemsen
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -29,14 +29,14 @@ GNU General Public License for more details.
  * Typedefs
  ***************************************************************************/
 
-typedef bool (*NvMemWriteFxn) ( uint16_t address, void * data, size_t len, void* nvmem_config );
-typedef bool (*NvMemReadFxn) ( uint16_t address, void * data, size_t len, void* nvmem_config );
+typedef bool (*NvMemWriteFxn) ( uint16_t address, void * data, size_t len );
+typedef bool (*NvMemReadFxn) ( uint16_t address, void * data, size_t len );
 
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
 
-void nvmem_init ( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn, void* config );
+void nvmem_init ( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn );
 bool nvmem_write ( uint16_t address, void * data, size_t len );
 bool nvmem_read ( uint16_t address, void * data, size_t len );
 
