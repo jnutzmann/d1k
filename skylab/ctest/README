@@ -1,0 +1,12 @@
+
+
+
+Information:
+-----------
+
+This is a small little C program that can be used to test the C code generated
+by the python can2C.py script that creates C structures from the YAML
+specification.
+
+Using gnu `make` on a linuxy system in this directory is the fastest way to test
+it, examine main.c to see what the output should be
