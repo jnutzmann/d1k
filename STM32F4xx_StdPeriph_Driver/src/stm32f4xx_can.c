@@ -32,7 +32,7 @@
   *                - Configure these CAN pins in alternate function mode by calling
   *                  the function  GPIO_Init();
   *    
-  *          3.  Initialise and configure the CAN using CAN_Init() and 
+  *          3.  Initialise and configure the CAN using can_init() and
   *               CAN_FilterInit() functions.   
   *               
   *          4.  Transmit the desired CAN frame using CAN_Transmit() function.

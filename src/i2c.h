@@ -1,7 +1,7 @@
 /********************************************************************
-d1k_fram.h
+i2c.h
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2014, Jonathan Nutzmann, Arlo Siemsen
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,23 +14,25 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef D1K_FRAM_H
-#define D1K_FRAM_H
+#ifndef I2C_H
+#define I2C_H
 
 /****************************************************************************
- * Includes
+ * Public Prototypes
  ***************************************************************************/
 
-#include "d1k.h"
-#include "stdlib.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_i2c.h"
 
-/****************************************************************************
- * Public Functions
- ***************************************************************************/
+void i2c_init    ( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit );
 
-void d1k_fram_Init  ( I2C_TypeDef* I2Cx, uint32 framSize, uint8 deviceAddress );
-void d1k_fram_Write ( uint16_t address, void * data, size_t len );
-void d1k_fram_Read  ( uint16_t address, void * data, size_t len );
+void i2c_restart ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
+void i2c_start   ( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction );
 
+uint8_t i2c_read_ack  ( I2C_TypeDef* I2Cx );
+uint8_t i2c_read_nack ( I2C_TypeDef* I2Cx );
+void    i2c_write     ( I2C_TypeDef* I2Cx, uint8_t data );
 
-#endif /* D1K_FRAM_H_ */
+void i2c_stop ( I2C_TypeDef* I2Cx );
+
+#endif /* I2C_H_ */

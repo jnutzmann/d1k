@@ -1,5 +1,5 @@
 /********************************************************************
-d1k_can.h
+can.h
 
 Copyright (c) 2014, Jonathan Nutzmann
 
@@ -21,7 +21,6 @@ GNU General Public License for more details.
  * Includes
  ***************************************************************************/
 
-#include "d1k.h"
 #include "stm32f4xx_can.h"
 
 /****************************************************************************
@@ -30,14 +29,12 @@ GNU General Public License for more details.
 
 #define CAN_PACKET_ID_MASK_ALLOW_ALL  ((CANPacketIDMask_t)0xFFFFFFFF)
 
-#define D1K_CAN_DEFAULT_BAUDRATE 125000
-
 /****************************************************************************
  * Typedefs
  ***************************************************************************/
 
-typedef uint32 CANPacketIDMask_t;
-typedef uint32 CANPacketId_t;
+typedef uint32_t CANPacketIDMask_t;
+typedef uint32_t CANPacketId_t;
 
 /**
  * CAN Packet Handler
@@ -48,7 +45,7 @@ typedef void (*CANRXHandlerFxn)(CanRxMsg * packet);
 typedef struct
 {
 	CANPacketIDMask_t  mask;
-	CANPacketId_t      idAfterMask;
+	CANPacketId_t      id_after_mask;
 	CANRXHandlerFxn    callback;
 } CANRXEntry_t;
 
@@ -56,9 +53,9 @@ typedef struct
  * Public Prototypes
  ***************************************************************************/
 
-void d1k_CAN_Init            ( CAN_TypeDef * canModule, uint32 baudRate);
-void d1k_CAN_SendPacket      ( CAN_TypeDef * canModule, CanTxMsg * packet );
-void d1k_CAN_SendPacket_ISR  ( CAN_TypeDef * canModule, CanTxMsg * packet );
-void d1k_CAN_RegisterHandler ( CAN_TypeDef * canModule, CANRXEntry_t * entry );
+void can_init(CAN_TypeDef *can_module, uint32_t baud_rate);
+void can_send_packet(CAN_TypeDef *can_module, CanTxMsg *packet);
+void can_send_packet_isr(CAN_TypeDef *can_module, CanTxMsg *packet);
+void can_register_handler(CAN_TypeDef *can_module, CANRXEntry_t *entry);
 
-#endif /* CAN_H_ */
+#endif /* CAN_H */

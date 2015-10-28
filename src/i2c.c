@@ -1,7 +1,7 @@
 /********************************************************************
-d1k_i2c.c
+i2c.c
 
-Copyright (c) 2014, Jonathan Nutzmann, Arlo Siemsen
+Copyright (c) 2015, Jonathan Nutzmann, Arlo Siemsen
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ GNU General Public License for more details.
 #include "FreeRTOS.h"
 #include "semphr.h"
 
-#include "d1k_i2c.h"
+#include "i2c.h"
 
 
 /****************************************************************************
@@ -38,25 +38,25 @@ static xSemaphoreHandle i2c_mutex[3];
  * Private Prototypes
  ***************************************************************************/
 
-static uint8_t d1k_i2c_Lock         ( I2C_TypeDef* I2Cx );
-static void    d1k_i2c_Unlock       ( I2C_TypeDef* I2Cx );
-static uint8_t d1k_i2c_GetChannelId ( I2C_TypeDef* I2Cx );
+static uint8_t i2c_lock(I2C_TypeDef *I2Cx);
+static void    i2c_unlock(I2C_TypeDef *I2Cx);
+static uint8_t i2c_get_channel_id(I2C_TypeDef *I2Cx);
 
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
 
-void d1k_i2c_Init( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit )
+void i2c_init(I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2C_init)
 {
 	// Init the I2C mutex
-	i2c_mutex[d1k_i2c_GetChannelId(I2Cx)] = xSemaphoreCreateMutex();
+	i2c_mutex[i2c_get_channel_id(I2Cx)] = xSemaphoreCreateMutex();
 
 	// Enable the I2C clock.
 	if      (I2Cx == I2C1) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
 	else if (I2Cx == I2C2) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2, ENABLE);
 	else if (I2Cx == I2C3) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C3, ENABLE);
 
-	I2C_Init(I2Cx, I2CInit);
+	I2C_Init(I2Cx, I2C_init);
 
 	// enable I2C
 	I2C_Cmd(I2Cx, ENABLE);
@@ -69,7 +69,7 @@ void d1k_i2c_Init( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2CInit )
  * @param address
  * @param direction - I2C_Direction_Tranmitter or I2C_Direction_Receiver
  */
-void d1k_i2c_Restart( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction )
+void i2c_restart(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction)
 {
 
 	// Send I2C1 START condition
@@ -102,14 +102,14 @@ void d1k_i2c_Restart( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction )
  * @param address - I2C address (needs to be << 1 bit for some reason)
  * @param direction - either I2C_Direction_Receiver or I2C_Direction_Transmitter
  */
-void d1k_i2c_Start( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction )
+void i2c_start(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction)
 {
-	d1k_i2c_Lock(I2Cx);
+	i2c_lock(I2Cx);
 
 	// wait until I2C1 is not busy anymore
 	while(I2C_GetFlagStatus(I2Cx, I2C_FLAG_BUSY));
 
-	d1k_i2c_Restart(I2Cx, address, direction);
+	i2c_restart(I2Cx, address, direction);
 }
 
 /**
@@ -117,13 +117,13 @@ void d1k_i2c_Start( I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction )
  * @param I2Cx - I2C module
  * @return data byte
  */
-uint8_t d1k_i2c_ReadAck( I2C_TypeDef* I2Cx )
+uint8_t i2c_read_ack(I2C_TypeDef* I2Cx)
 {
 	// enable acknowledge of received data
 	I2C_AcknowledgeConfig(I2Cx, ENABLE);
 
 	// wait until one byte has been received
-	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) );
+	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED));
 
 	// read data from I2C data register and return data byte
 	uint8_t data = I2C_ReceiveData(I2Cx);
@@ -136,13 +136,13 @@ uint8_t d1k_i2c_ReadAck( I2C_TypeDef* I2Cx )
  * @param I2Cx - i2c module
  * @return data byte
  */
-uint8_t d1k_i2c_ReadNack( I2C_TypeDef* I2Cx )
+uint8_t i2c_read_nack( I2C_TypeDef* I2Cx )
 {
 	// disabe acknowledge of received data
 	I2C_AcknowledgeConfig(I2Cx, DISABLE);
 
 	// wait until one byte has been received
-	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) );
+	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED));
 
 	// read data from I2C data register and return data byte
 	uint8_t data = I2C_ReceiveData(I2Cx);
@@ -154,11 +154,11 @@ uint8_t d1k_i2c_ReadNack( I2C_TypeDef* I2Cx )
  * i2c_stop - releases the bus and unlock
  * @param I2Cx - i2c module
  */
-void d1k_i2c_Stop( I2C_TypeDef* I2Cx )
+void i2c_stop( I2C_TypeDef* I2Cx )
 {
 	// Send I2C1 STOP Condition
 	I2C_GenerateSTOP( I2Cx, ENABLE );
-	d1k_i2c_Unlock( I2Cx );
+	i2c_unlock(I2Cx);
 }
 
 /**
@@ -166,7 +166,7 @@ void d1k_i2c_Stop( I2C_TypeDef* I2Cx )
  * @param I2Cx - I2C module
  * @param data - data byte
  */
-void d1k_i2c_Write( I2C_TypeDef* I2Cx, uint8_t data )
+void i2c_write( I2C_TypeDef* I2Cx, uint8_t data )
 {
 	I2C_SendData(I2Cx, data);
 
@@ -178,19 +178,19 @@ void d1k_i2c_Write( I2C_TypeDef* I2Cx, uint8_t data )
  * Private Functions
  ***************************************************************************/
 
-static uint8_t d1k_i2c_GetChannelId( I2C_TypeDef* I2Cx )
+static uint8_t i2c_get_channel_id(I2C_TypeDef *I2Cx)
 {
 	if      (I2Cx == I2C1) return 0;
 	else if (I2Cx == I2C2) return 1;
 	else 				   return 2;
 }
 
-static uint8_t d1k_i2c_Lock( I2C_TypeDef* I2Cx )
+static uint8_t i2c_lock(I2C_TypeDef *I2Cx)
 {
-	return xSemaphoreTake(i2c_mutex[d1k_i2c_GetChannelId(I2Cx)], 1000);
+	return xSemaphoreTake(i2c_mutex[i2c_get_channel_id(I2Cx)], 1000);
 }
 
-static void d1k_i2c_Unlock( I2C_TypeDef* I2Cx )
+static void i2c_unlock(I2C_TypeDef *I2Cx)
 {
-	xSemaphoreGive(i2c_mutex[d1k_i2c_GetChannelId(I2Cx)]);
+	xSemaphoreGive(i2c_mutex[i2c_get_channel_id(I2Cx)]);
 }

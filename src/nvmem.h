@@ -1,7 +1,7 @@
 /********************************************************************
-d1k.h
+nvmem.h
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,41 +14,31 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef D1K_H
-#define D1K_H
+#ifndef NVMEM_H
+#define NVMEM_H
 
 /****************************************************************************
  * Includes
  ***************************************************************************/
 
-#include "stm32f4xx.h"
-
-//#include "d1k_can.h"
-//#include "d1k_led.h"
-//#include "d1k_portal.h"
-//#include "d1k_stdio.h"
-//#include "d1k_stdio_can.h"
+#include "stdint.h"
+#include "stdlib.h"
+#include "stdbool.h"
 
 /****************************************************************************
  * Typedefs
  ***************************************************************************/
 
-typedef uint8_t  uint8;
-typedef int8_t   sint8;
-typedef uint16_t uint16;
-typedef int16_t  sint16;
-typedef uint32_t uint32;
-typedef int32_t  sint32;
-
-typedef uint8	 bool;
+typedef bool (*NvMemWriteFxn) ( uint16_t address, void * data, size_t len );
+typedef bool (*NvMemReadFxn) ( uint16_t address, void * data, size_t len );
 
 /****************************************************************************
- * Definitions
+ * Public Functions
  ***************************************************************************/
 
-#define true  (1)
-#define false (0)
+void nvmem_init ( NvMemReadFxn read_fxn, NvMemWriteFxn write_fxn );
+bool nvmem_write ( uint16_t address, void * data, size_t len );
+bool nvmem_read ( uint16_t address, void * data, size_t len );
 
-#define NVIC_SetPriorityGrouping ERROR_Use_NVIC_PriorityGroupConfig_instead
 
-#endif /* D1K_H_ */
+#endif /* NVMEM_H */

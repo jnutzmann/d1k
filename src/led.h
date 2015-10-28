@@ -1,7 +1,7 @@
 /********************************************************************
-d1k_portal.h
+led.h
 
-Copyright (c) 2014, Jonathan Nutzmann
+Copyright (c) 2015, Jonathan Nutzmann
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,27 +14,57 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ********************************************************************/
 
-#ifndef D1K_PORTAL_H
-#define D1K_PORTAL_H
+#ifndef LED_H
+#define LED_H
 
 /****************************************************************************
  * Includes
  ***************************************************************************/
 
-#include "d1k.h"
+#include "stdbool.h"
+#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_gpio.h"
+
+/****************************************************************************
+ * Defines
+ ***************************************************************************/
+
+#define MAX_LED_COUNT            (16)
 
 /****************************************************************************
  * Typedefs
  ***************************************************************************/
 
-typedef void (*d1kPortalFxn)( int argc, char ** argv );
+typedef uint8_t LED_ID_t;
+
+/**
+ * These are purposes that can be assigned to LEDs to give D1K control of their state.
+ */
+typedef enum 
+{
+    LED_CAN = 0,
+    LED_ERROR,
+    LED_COUNT_CORE
+} LEDPurpose_t;
+
+typedef struct 
+{
+    uint32_t GPIO_Pin;
+    GPIO_TypeDef* GPIOx;
+    uint32_t GPIO_Clock;
+    uint32_t on_time;
+    uint32_t off_time;
+} LEDInitStruct_t;
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Prototypes
  ***************************************************************************/
 
-void d1k_portal_Init             ( void );
-void d1k_portal_RegisterFunction ( char* cmd, d1kPortalFxn fxn);
+bool led_init ( LED_ID_t ld_id, LEDInitStruct_t *led );
 
+void led_on ( LED_ID_t n );
+void led_off ( LED_ID_t n );
+void led_toggle ( LED_ID_t n );
+bool led_flash ( LED_ID_t n, uint32_t on_time, uint32_t off_time );
 
-#endif /* D1K_PORTAL_H_ */
+#endif
