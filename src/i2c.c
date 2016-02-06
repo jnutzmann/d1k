@@ -18,6 +18,9 @@ GNU General Public License for more details.
  * Includes
  ***************************************************************************/
 
+#include "FreeRTOS.h"
+#include "i2c.h"
+#include "semphr.h"
 #include "stdbool.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx.h"
@@ -25,22 +28,19 @@ GNU General Public License for more details.
 #include "stm32f4xx_rcc.h"
 
 
-#include "FreeRTOS.h"
-#include "semphr.h"
-
-#include "i2c.h"
-
 /****************************************************************************
  * Definitions
  ***************************************************************************/
 
 #define I2C_TIMEOUT 5000
 
+
 /****************************************************************************
  * Global Variables
  ***************************************************************************/
 
 static xSemaphoreHandle i2c_mutex[3];
+
 
 /****************************************************************************
  * Private Prototypes
@@ -50,16 +50,19 @@ static uint8_t i2c_lock           ( I2C_TypeDef *I2Cx );
 static void    i2c_unlock         ( I2C_TypeDef *I2Cx );
 static uint8_t i2c_get_channel_id ( I2C_TypeDef *I2Cx );
 
+
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
 
-void i2c_init( GPIODefStruct_t* sda_pin, GPIODefStruct_t* scl_pin,
-               I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2C_init )
+void i2c_init( I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2C_init, 
+               GPIODefStruct_t* sda_pin, GPIODefStruct_t* scl_pin )
 {
+  // Enable GPIO clock for pins.
   RCC_AHB1PeriphClockCmd( sda_pin->RCC_AHB1Periph, ENABLE );
   RCC_AHB1PeriphClockCmd( scl_pin->RCC_AHB1Periph, ENABLE );
 
+  // Set up the GPIO pins as AF.
   GPIO_InitTypeDef gpio_init_struct = {
       .GPIO_Pin = sda_pin->GPIO_Pin,
       .GPIO_Mode = GPIO_Mode_AF,
@@ -73,16 +76,19 @@ void i2c_init( GPIODefStruct_t* sda_pin, GPIODefStruct_t* scl_pin,
   gpio_init_struct.GPIO_Pin = scl_pin->GPIO_Pin;
   GPIO_Init( scl_pin->GPIOx, &gpio_init_struct );
 
-  GPIO_PinAFConfig(sda_pin->GPIOx, sda_pin->GPIO_PinSource, GPIO_AF_I2C1);
-  GPIO_PinAFConfig(scl_pin->GPIOx, scl_pin->GPIO_PinSource, GPIO_AF_I2C1);
+  // Configure the pins to be I2C AF.
+  uint8_t i2c_af_map[] = { GPIO_AF_I2C1, GPIO_AF_I2C2, GPIO_AF_I2C3 };
+  uint8_t i2c_af = i2c_af_map[i2c_get_channel_id(I2Cx)];
+
+  GPIO_PinAFConfig(sda_pin->GPIOx, sda_pin->GPIO_PinSource, i2c_af);
+  GPIO_PinAFConfig(scl_pin->GPIOx, scl_pin->GPIO_PinSource, i2c_af);
 
 	// Init the I2C mutex
 	i2c_mutex[i2c_get_channel_id(I2Cx)] = xSemaphoreCreateMutex();
 
 	// Enable the I2C clock.
-	if      (I2Cx == I2C1) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
-	else if (I2Cx == I2C2) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2, ENABLE);
-	else if (I2Cx == I2C3) RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C3, ENABLE);
+  uint32_t clock_map[] = {RCC_APB1Periph_I2C1, RCC_APB1Periph_I2C2, RCC_APB1Periph_I2C3 };
+	RCC_APB1PeriphClockCmd(clock_map[i2c_get_channel_id(I2Cx)], ENABLE);
 
   I2C_DeInit(I2Cx);
   I2C_Cmd(I2Cx, ENABLE);
