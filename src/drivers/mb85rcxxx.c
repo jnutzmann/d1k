@@ -60,18 +60,6 @@ static bool read ( uint16_t address, void * data, size_t len );
  */
 void mb85rcxx_init(I2C_TypeDef *I2Cx, uint32_t size, uint8_t device_address)
 {
-	I2C_InitTypeDef i2c_init_struct;
-	I2C_StructInit(&i2c_init_struct);
-
-	i2c_init_struct.I2C_Ack = I2C_Ack_Enable;
-	i2c_init_struct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-	i2c_init_struct.I2C_ClockSpeed = FRAM_I2C_SPEED_HZ;
-	i2c_init_struct.I2C_DutyCycle = I2C_DutyCycle_2;
-	i2c_init_struct.I2C_Mode = I2C_Mode_I2C;
-	i2c_init_struct.I2C_OwnAddress1 = 0x00;
-
-	i2c_init( I2Cx, &i2c_init_struct);
-
 	fram_I2Cx = I2Cx;
 	fram_device_address = device_address;
     fram_size = size;
