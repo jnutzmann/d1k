@@ -8,9 +8,9 @@
 #define _USE_WRITE	1	/* 1: Enable disk_write function */
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
-#include "integer.h"
-#include "defines.h"
-#include "attributes.h"
+#include "fatfs/integer.h"
+#include "fatfs_defines.h"
+#include "fatfs/attributes.h"
 
 /* Status of Disk Functions */
 typedef BYTE DSTATUS;

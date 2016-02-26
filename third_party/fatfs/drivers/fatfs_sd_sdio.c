@@ -222,36 +222,54 @@
  ******************************************************************************
  */
 
-/* Includes ------------------------------------------------------------------*/
-//#include "stm324x9i_eval_ioe16.h"
+
+/****************************************************************************
+ * Includes
+ ***************************************************************************/
+
 #include "stm32f4xx.h"
+#include "stm32f4xx_gpio.h"
+#include "stm32f4xx_sdio.h"
+#include "stm32f4xx_nvic.h"
+#include "fatfs/drivers/fatfs_sd_sdio.h"
 #include "fatfs_sd_sdio.h"
 #include <string.h>
-/*
-#include "tm_stm32f4_usart.h"
-#define logf(x)	TM_USART_Puts(USART1, x); TM_USART_Puts(USART1, "\n");
-*/
+#include <gpio.h>
+
+
+/****************************************************************************
+ * Definitions
+ ***************************************************************************/
+
 #define logf(x)
 
+#define BLOCK_SIZE            512
+
+/****************************************************************************
+ * Global Variables
+ ***************************************************************************/
 
 static uint32_t CardType = SDIO_STD_CAPACITY_SD_CARD_V1_1;
 static uint32_t CSD_Tab[4], CID_Tab[4], RCA = 0;
 static uint8_t SDSTATUS_Tab[16];
-__IO uint32_t StopCondition = 0;
-__IO SD_Error TransferError = SD_OK;
-__IO uint32_t TransferEnd = 0, DMAEndOfTransfer = 0;
+volatile uint32_t StopCondition = 0;
+volatile SD_Error TransferError = SD_OK;
+volatile uint32_t TransferEnd = 0, DMAEndOfTransfer = 0;
 SD_CardInfo SDCardInfo;
 
 SDIO_InitTypeDef SDIO_InitStructure;
 SDIO_CmdInitTypeDef SDIO_CmdInitStructure;
 SDIO_DataInitTypeDef SDIO_DataInitStructure;
-/**
- * @}
- */
 
-/** @defgroup STM324x9I_EVAL_SDIO_SD_Private_Function_Prototypes
- * @{
- */
+static volatile DSTATUS TM_FATFS_SD_SDIO_Stat = STA_NOINIT;	/* Physical drive status */
+
+static SD_DriverConfig_t driverConfig;
+
+
+/****************************************************************************
+ * Private Prototypes
+ ***************************************************************************/
+
 static SD_Error CmdError (void);
 static SD_Error CmdResp1Error (uint8_t cmd);
 static SD_Error CmdResp7Error (void);
@@ -261,23 +279,42 @@ static SD_Error CmdResp6Error (uint8_t cmd, uint16_t *prca);
 static SD_Error SDEnWideBus (FunctionalState NewState);
 static SD_Error IsCardProgramming (uint8_t *pstatus);
 static SD_Error FindSCR (uint16_t rca, uint32_t *pscr);
+
+
 uint8_t convert_from_bytes_to_power_of_two (uint16_t NumberOfBytes);
 
-static volatile DSTATUS TM_FATFS_SD_SDIO_Stat = STA_NOINIT;	/* Physical drive status */
 
-#define BLOCK_SIZE            512
+/****************************************************************************
+ * Public Functions
+ ***************************************************************************/
 
-uint8_t TM_FATFS_SDIO_WriteEnabled(void) {
-#if FATFS_USE_WRITEPROTECT_PIN > 0
-	return !TM_GPIO_GetInputPinValue(FATFS_USE_WRITEPROTECT_PIN_PORT, FATFS_USE_WRITEPROTECT_PIN_PIN);
-#else
-	return 1;
-#endif
+bool sd_write_enabled(void) {
+	if (driverConfig.use_write_protect)	{
+		return GPIO_ReadInputDataBit(driverConfig.write_protect_pin.GPIOx,
+										driverConfig.write_protect_pin.GPIO_Pin);
+	} else {
+		return true;
+	}
 }
+
+
+
+
 
 DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 	NVIC_InitTypeDef NVIC_InitStructure;
-	
+
+	if (driverConfig.use_write_protect) {
+		RCC_AHB1PeriphClockCmd(driverConfig.write_protect_pin.RCC_AHB1Periph, ENABLE);
+		GPIO_InitTypeDef gpio_init = {
+			.GPIO_Pin = driverConfig.write_protect_pin.GPIO_Pin,
+			.GPIO_Mode = GPIO_Mode_IN,
+			.GPIO_OType = GPIO_OType_PP,
+			.GPIO_PuPd = GPIO_PuPd_NOPULL,
+			.GPIO_Speed = GPIO_Speed_2MHz
+		};
+		GPIO_Init(driverConfig.write_protect_pin.GPIOx, &gpio_init);
+	}
 	/* Detect pin */
 #if FATFS_USE_DETECT_PIN > 0
 	TM_GPIO_Init(FATFS_USE_DETECT_PIN_PORT, FATFS_USE_DETECT_PIN_PIN, TM_GPIO_Mode_IN, TM_GPIO_OType_PP, TM_GPIO_PuPd_UP, TM_GPIO_Speed_Low);
@@ -309,7 +346,7 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 		TM_FATFS_SD_SDIO_Stat |= STA_NOINIT;
 	}
 	//Check write protected
-	if (!TM_FATFS_SDIO_WriteEnabled()) {
+	if (!sd_write_enabled()) {
 		TM_FATFS_SD_SDIO_Stat |= STA_PROTECT;
 	} else {
 		TM_FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
@@ -318,12 +355,16 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 	return TM_FATFS_SD_SDIO_Stat;
 }
 
+
+
+
+
 DSTATUS TM_FATFS_SD_SDIO_disk_status(void) {
 	if (SD_Detect() != SD_PRESENT) {
 		return STA_NOINIT;
 	}
 	
-	if (!TM_FATFS_SDIO_WriteEnabled()) {
+	if (!sd_write_enabled()) {
 		TM_FATFS_SD_SDIO_Stat |= STA_PROTECT;
 	} else {
 		TM_FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
@@ -331,6 +372,11 @@ DSTATUS TM_FATFS_SD_SDIO_disk_status(void) {
 	
 	return TM_FATFS_SD_SDIO_Stat;
 }
+
+
+
+
+
 
 DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count) {
 	SD_Error Status = SD_OK;
@@ -377,10 +423,15 @@ DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count) {
 	}
 }
 
+
+
+
+
+
 DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count) {
 	SD_Error Status = SD_OK;
 
-	if (!TM_FATFS_SDIO_WriteEnabled()) {
+	if (!sd_write_enabled()) {
 		return RES_WRPRT;
 	}
 
@@ -425,6 +476,11 @@ DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count) 
 	}
 }
 
+
+
+
+
+
 DRESULT TM_FATFS_SD_SDIO_disk_ioctl(BYTE cmd, void *buff) {
 	switch (cmd) {
 		case GET_SECTOR_SIZE :     // Get R/W sector size (WORD) 
@@ -441,9 +497,15 @@ DRESULT TM_FATFS_SD_SDIO_disk_ioctl(BYTE cmd, void *buff) {
 	return RES_OK;
 }
 
+
+
+
 void SDIO_IRQHandler(void) {
 	SD_ProcessIRQSrc();
 }
+
+
+
 
 #ifdef SD_SDIO_DMA_STREAM3
 void DMA2_Stream3_IRQHandler(void) {
@@ -451,11 +513,17 @@ void DMA2_Stream3_IRQHandler(void) {
 }
 #endif
 
+
+
+
+
 #ifdef SD_SDIO_DMA_STREAM6
 void DMA2_Stream6_IRQHandler(void) {
 	SD_ProcessDMAIRQ();
 }
 #endif
+
+
 
 
 
@@ -476,6 +544,9 @@ void SD_DeInit (void) {
 	SD_LowLevel_DeInit();
 }
 
+
+
+
 /**
  * @brief  Initializes the SD Card and put it into StandBy State (Ready for data
  *         transfer).
@@ -484,7 +555,7 @@ void SD_DeInit (void) {
  */
 SD_Error SD_Init (void)
 {
-	__IO SD_Error errorstatus = SD_OK;
+	volatile SD_Error errorstatus = SD_OK;
 
 	/* SDIO Peripheral Low Level Init */
 	//SD_LowLevel_Init();
@@ -553,6 +624,11 @@ SD_Error SD_Init (void)
 	return (errorstatus);
 }
 
+
+
+
+
+
 /**
  * @brief  Gets the cuurent sd card data transfer status.
  * @param  None
@@ -576,6 +652,10 @@ SDTransferState SD_GetStatus (void)
 	}
 }
 
+
+
+
+
 /**
  * @brief  Returns the current card's state.
  * @param  None
@@ -595,13 +675,16 @@ SDCardState SD_GetState(void) {
 	return SD_CARD_ERROR;
 }
 
+
+
+
 /**
  * @brief  Detect if SD card is correctly plugged in the memory slot.
  * @param  None
  * @retval Return if SD is detected or not
  */
 uint8_t SD_Detect(void) {
-	__IO uint8_t status = SD_PRESENT;
+	volatile uint8_t status = SD_PRESENT;
 
 	/* Check status */
 	if (!TM_FATFS_CheckCardDetectPin()) {
@@ -612,6 +695,9 @@ uint8_t SD_Detect(void) {
 	return status;
 }
 
+
+
+
 /**
  * @brief  Enquires cards about their operating voltage and configures
  *   clock controls.
@@ -620,7 +706,7 @@ uint8_t SD_Detect(void) {
  */
 SD_Error SD_PowerON (void)
 {
-	__IO SD_Error errorstatus = SD_OK;
+	volatile SD_Error errorstatus = SD_OK;
 	uint32_t response = 0, count = 0, validvoltage = 0;
 	uint32_t SDType = SD_STD_CAPACITY;
 
@@ -747,6 +833,10 @@ SD_Error SD_PowerON (void)
 	return (errorstatus);
 }
 
+
+
+
+
 /**
  * @brief  Turns the SDIO output signals off.
  * @param  None
@@ -761,6 +851,9 @@ SD_Error SD_PowerOFF (void)
 
 	return (errorstatus);
 }
+
+
+
 
 /**
  * @brief  Intialises all cards or single card as the case may be Card(s) come
@@ -1918,7 +2011,7 @@ SD_Error SD_Erase (uint64_t startaddr, uint64_t endaddr)
 {
 	SD_Error errorstatus = SD_OK;
 	uint32_t delay = 0;
-	__IO uint32_t maxdelay = 0;
+	volatile uint32_t maxdelay = 0;
 	uint8_t cardstate = 0;
 
 	/*!< Check if the card coomnd class supports erase command */
@@ -2593,7 +2686,7 @@ static SD_Error SDEnWideBus (FunctionalState NewState)
 static SD_Error IsCardProgramming (uint8_t *pstatus)
 {
 	SD_Error errorstatus = SD_OK;
-	__IO uint32_t respR1 = 0, status = 0;
+	volatile uint32_t respR1 = 0, status = 0;
 
 	SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) RCA << 16;
 	SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SEND_STATUS;

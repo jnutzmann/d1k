@@ -7,8 +7,8 @@
 /* storage control module to the FatFs module with a defined API.        */
 /*-----------------------------------------------------------------------*/
 
-#include "diskio.h"		/* FatFs lower layer API */
-#include "ff.h"
+#include "fatfs/diskio.h"		/* FatFs lower layer API */
+#include "fatfs/ff.h"
 
 /* Not USB in use */
 /* Define it in defines.h project file if you want to use USB */
@@ -80,19 +80,11 @@
 /* Make driver structure */
 DISKIO_LowLevelDriver_t FATFS_LowLevelDrivers[_VOLUMES] = {
 	{
-#if FATFS_USE_SDIO == 1
 		TM_FATFS_SD_SDIO_disk_initialize,
 		TM_FATFS_SD_SDIO_disk_status,
 		TM_FATFS_SD_SDIO_disk_ioctl,
 		TM_FATFS_SD_SDIO_disk_write,
 		TM_FATFS_SD_SDIO_disk_read
-#else
-		TM_FATFS_SD_disk_initialize,
-		TM_FATFS_SD_disk_status,
-		TM_FATFS_SD_disk_ioctl,
-		TM_FATFS_SD_disk_write,
-		TM_FATFS_SD_disk_read
-#endif
 	},
 	{
 		TM_FATFS_USB_disk_initialize,

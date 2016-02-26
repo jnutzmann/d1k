@@ -22,5 +22,3 @@ typedef long			LONG;
 typedef unsigned long	DWORD;
 
 #endif
-
-#endif

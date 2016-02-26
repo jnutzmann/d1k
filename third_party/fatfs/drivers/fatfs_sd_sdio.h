@@ -26,50 +26,30 @@
  ******************************************************************************
  */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM324x9I_EVAL_SDIO_SD_H
-#define __STM324x9I_EVAL_SDIO_SD_H
 
-/* Includes ------------------------------------------------------------------*/
+#ifndef SD_SDIO_SD_H
+#define SD_SDIO_SD_H
+
+
+/****************************************************************************
+ * Includes
+ ***************************************************************************/
+
 #include <stm32f4xx.h>
+#include "stdbool.h"
 	
-#include "diskio.h"
-#include "integer.h"
-
+#include "fatfs/diskio.h"
+#include "fatfs/integer.h"
+#include "gpio.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_gpio.h"
-#include "defines.h"
+#include "fatfs_defines.h"
 
-#include "tm_stm32f4_delay.h"
-#include "tm_stm32f4_fatfs.h"
-#include "tm_stm32f4_gpio.h"
 
-#ifndef FATFS_USE_DETECT_PIN
-#define FATFS_USE_DETECT_PIN				0
-#endif
-
-#ifndef FATFS_USE_WRITEPROTECT_PIN
-#define FATFS_USE_WRITEPROTECT_PIN			0
-#endif
-
-#ifndef FATFS_SDIO_4BIT
-#define FATFS_SDIO_4BIT						1
-#endif
-
-#if FATFS_USE_DETECT_PIN > 0
-#ifndef FATFS_USE_DETECT_PIN_PIN		
-#define FATFS_USE_DETECT_PIN_PORT			GPIOB
-#define FATFS_USE_DETECT_PIN_PIN			GPIO_PIN_6
-#endif
-#endif
-
-#if FATFS_USE_WRITEPROTECT_PIN > 0
-#ifndef FATFS_USE_WRITEPROTECT_PIN_PIN			
-#define FATFS_USE_WRITEPROTECT_PIN_PORT		GPIOB
-#define FATFS_USE_WRITEPROTECT_PIN_PIN		GPIO_PIN_7
-#endif
-#endif
+/****************************************************************************
+ * Typedefs
+ ***************************************************************************/
 
 typedef enum
 {
@@ -128,88 +108,88 @@ typedef enum
  * @brief  SDIO Transfer state
  */
 typedef enum {
-        SD_TRANSFER_OK = 0, SD_TRANSFER_BUSY = 1, SD_TRANSFER_ERROR
+    SD_TRANSFER_OK = 0, SD_TRANSFER_BUSY = 1, SD_TRANSFER_ERROR
 } SDTransferState;
 
 /** 
  * @brief  SD Card States
  */
 typedef enum {
-        SD_CARD_READY = ((uint32_t) 0x00000001),
-        SD_CARD_IDENTIFICATION = ((uint32_t) 0x00000002),
-        SD_CARD_STANDBY = ((uint32_t) 0x00000003),
-        SD_CARD_TRANSFER = ((uint32_t) 0x00000004),
-        SD_CARD_SENDING = ((uint32_t) 0x00000005),
-        SD_CARD_RECEIVING = ((uint32_t) 0x00000006),
-        SD_CARD_PROGRAMMING = ((uint32_t) 0x00000007),
-        SD_CARD_DISCONNECTED = ((uint32_t) 0x00000008),
-        SD_CARD_ERROR = ((uint32_t) 0x000000FF)
+    SD_CARD_READY = ((uint32_t) 0x00000001),
+    SD_CARD_IDENTIFICATION = ((uint32_t) 0x00000002),
+    SD_CARD_STANDBY = ((uint32_t) 0x00000003),
+    SD_CARD_TRANSFER = ((uint32_t) 0x00000004),
+    SD_CARD_SENDING = ((uint32_t) 0x00000005),
+    SD_CARD_RECEIVING = ((uint32_t) 0x00000006),
+    SD_CARD_PROGRAMMING = ((uint32_t) 0x00000007),
+    SD_CARD_DISCONNECTED = ((uint32_t) 0x00000008),
+    SD_CARD_ERROR = ((uint32_t) 0x000000FF)
 } SDCardState;
 
 /** 
  * @brief  Card Specific Data: CSD Register
  */
 typedef struct {
-        __IO uint8_t CSDStruct; /*!< CSD structure */
-        __IO uint8_t SysSpecVersion; /*!< System specification version */
-        __IO uint8_t Reserved1; /*!< Reserved */
-        __IO uint8_t TAAC; /*!< Data read access-time 1 */
-        __IO uint8_t NSAC; /*!< Data read access-time 2 in CLK cycles */
-        __IO uint8_t MaxBusClkFrec; /*!< Max. bus clock frequency */
-        __IO uint16_t CardComdClasses; /*!< Card command classes */
-        __IO uint8_t RdBlockLen; /*!< Max. read data block length */
-        __IO uint8_t PartBlockRead; /*!< Partial blocks for read allowed */
-        __IO uint8_t WrBlockMisalign; /*!< Write block misalignment */
-        __IO uint8_t RdBlockMisalign; /*!< Read block misalignment */
-        __IO uint8_t DSRImpl; /*!< DSR implemented */
-        __IO uint8_t Reserved2; /*!< Reserved */
-        __IO uint32_t DeviceSize; /*!< Device Size */
-        __IO uint8_t MaxRdCurrentVDDMin; /*!< Max. read current @ VDD min */
-        __IO uint8_t MaxRdCurrentVDDMax; /*!< Max. read current @ VDD max */
-        __IO uint8_t MaxWrCurrentVDDMin; /*!< Max. write current @ VDD min */
-        __IO uint8_t MaxWrCurrentVDDMax; /*!< Max. write current @ VDD max */
-        __IO uint8_t DeviceSizeMul; /*!< Device size multiplier */
-        __IO uint8_t EraseGrSize; /*!< Erase group size */
-        __IO uint8_t EraseGrMul; /*!< Erase group size multiplier */
-        __IO uint8_t WrProtectGrSize; /*!< Write protect group size */
-        __IO uint8_t WrProtectGrEnable; /*!< Write protect group enable */
-        __IO uint8_t ManDeflECC; /*!< Manufacturer default ECC */
-        __IO uint8_t WrSpeedFact; /*!< Write speed factor */
-        __IO uint8_t MaxWrBlockLen; /*!< Max. write data block length */
-        __IO uint8_t WriteBlockPaPartial; /*!< Partial blocks for write allowed */
-        __IO uint8_t Reserved3; /*!< Reserded */
-        __IO uint8_t ContentProtectAppli; /*!< Content protection application */
-        __IO uint8_t FileFormatGrouop; /*!< File format group */
-        __IO uint8_t CopyFlag; /*!< Copy flag (OTP) */
-        __IO uint8_t PermWrProtect; /*!< Permanent write protection */
-        __IO uint8_t TempWrProtect; /*!< Temporary write protection */
-        __IO uint8_t FileFormat; /*!< File Format */
-        __IO uint8_t ECC; /*!< ECC code */
-        __IO uint8_t CSD_CRC; /*!< CSD CRC */
-        __IO uint8_t Reserved4; /*!< always 1*/
+    volatile uint8_t CSDStruct; /*!< CSD structure */
+    volatile uint8_t SysSpecVersion; /*!< System specification version */
+    volatile uint8_t Reserved1; /*!< Reserved */
+    volatile uint8_t TAAC; /*!< Data read access-time 1 */
+    volatile uint8_t NSAC; /*!< Data read access-time 2 in CLK cycles */
+    volatile uint8_t MaxBusClkFrec; /*!< Max. bus clock frequency */
+    volatile uint16_t CardComdClasses; /*!< Card command classes */
+    volatile uint8_t RdBlockLen; /*!< Max. read data block length */
+    volatile uint8_t PartBlockRead; /*!< Partial blocks for read allowed */
+    volatile uint8_t WrBlockMisalign; /*!< Write block misalignment */
+    volatile uint8_t RdBlockMisalign; /*!< Read block misalignment */
+    volatile uint8_t DSRImpl; /*!< DSR implemented */
+    volatile uint8_t Reserved2; /*!< Reserved */
+    volatile uint32_t DeviceSize; /*!< Device Size */
+    volatile uint8_t MaxRdCurrentVDDMin; /*!< Max. read current @ VDD min */
+    volatile uint8_t MaxRdCurrentVDDMax; /*!< Max. read current @ VDD max */
+    volatile uint8_t MaxWrCurrentVDDMin; /*!< Max. write current @ VDD min */
+    volatile uint8_t MaxWrCurrentVDDMax; /*!< Max. write current @ VDD max */
+    volatile uint8_t DeviceSizeMul; /*!< Device size multiplier */
+    volatile uint8_t EraseGrSize; /*!< Erase group size */
+    volatile uint8_t EraseGrMul; /*!< Erase group size multiplier */
+    volatile uint8_t WrProtectGrSize; /*!< Write protect group size */
+    volatile uint8_t WrProtectGrEnable; /*!< Write protect group enable */
+    volatile uint8_t ManDeflECC; /*!< Manufacturer default ECC */
+    volatile uint8_t WrSpeedFact; /*!< Write speed factor */
+    volatile uint8_t MaxWrBlockLen; /*!< Max. write data block length */
+    volatile uint8_t WriteBlockPaPartial; /*!< Partial blocks for write allowed */
+    volatile uint8_t Reserved3; /*!< Reserded */
+    volatile uint8_t ContentProtectAppli; /*!< Content protection application */
+    volatile uint8_t FileFormatGrouop; /*!< File format group */
+    volatile uint8_t CopyFlag; /*!< Copy flag (OTP) */
+    volatile uint8_t PermWrProtect; /*!< Permanent write protection */
+    volatile uint8_t TempWrProtect; /*!< Temporary write protection */
+    volatile uint8_t FileFormat; /*!< File Format */
+    volatile uint8_t ECC; /*!< ECC code */
+    volatile uint8_t CSD_CRC; /*!< CSD CRC */
+    volatile uint8_t Reserved4; /*!< always 1*/
 } SD_CSD;
 
 /** 
  * @brief  Card Identification Data: CID Register
  */
 typedef struct {
-        __IO uint8_t ManufacturerID; /*!< ManufacturerID */
-        __IO uint16_t OEM_AppliID; /*!< OEM/Application ID */
-        __IO uint32_t ProdName1; /*!< Product Name part1 */
-        __IO uint8_t ProdName2; /*!< Product Name part2*/
-        __IO uint8_t ProdRev; /*!< Product Revision */
-        __IO uint32_t ProdSN; /*!< Product Serial Number */
-        __IO uint8_t Reserved1; /*!< Reserved1 */
-        __IO uint16_t ManufactDate; /*!< Manufacturing Date */
-        __IO uint8_t CID_CRC; /*!< CID CRC */
-        __IO uint8_t Reserved2; /*!< always 1 */
+    volatile uint8_t ManufacturerID; /*!< ManufacturerID */
+    volatile uint16_t OEM_AppliID; /*!< OEM/Application ID */
+    volatile uint32_t ProdName1; /*!< Product Name part1 */
+    volatile uint8_t ProdName2; /*!< Product Name part2*/
+    volatile uint8_t ProdRev; /*!< Product Revision */
+    volatile uint32_t ProdSN; /*!< Product Serial Number */
+    volatile uint8_t Reserved1; /*!< Reserved1 */
+    volatile uint16_t ManufactDate; /*!< Manufacturing Date */
+    volatile uint8_t CID_CRC; /*!< CID CRC */
+    volatile uint8_t Reserved2; /*!< always 1 */
 } SD_CID;
 
 /** 
  * @brief SD Card Status
  */
 typedef struct {
-	__IO uint8_t DAT_BUS_WIDTH;__IO uint8_t SECURED_MODE;__IO uint16_t SD_CARD_TYPE;__IO uint32_t SIZE_OF_PROTECTED_AREA;__IO uint8_t SPEED_CLASS;__IO uint8_t PERFORMANCE_MOVE;__IO uint8_t AU_SIZE;__IO uint16_t ERASE_SIZE;__IO uint8_t ERASE_TIMEOUT;__IO uint8_t ERASE_OFFSET;
+	volatile uint8_t DAT_BUS_WIDTH;volatile uint8_t SECURED_MODE;volatile uint16_t SD_CARD_TYPE;volatile uint32_t SIZE_OF_PROTECTED_AREA;volatile uint8_t SPEED_CLASS;volatile uint8_t PERFORMANCE_MOVE;volatile uint8_t AU_SIZE;volatile uint16_t ERASE_SIZE;volatile uint8_t ERASE_TIMEOUT;volatile uint8_t ERASE_OFFSET;
 } SD_CardStatus;
 
 /** 
@@ -224,13 +204,19 @@ typedef struct {
 	uint8_t CardType;
 } SD_CardInfo;
 
-/**
- * @}
- */
+typedef struct
+{
+    GPIODefStruct_t write_protect_pin;
+    GPIODefStruct_t sd_present_pin;
+    bool use_write_protect;
+    bool use_sd_present;
 
-/** @defgroup STM324x9I_EVAL_SDIO_SD_Exported_Constants
- * @{
- */
+} SD_DriverConfig_t;
+
+
+/****************************************************************************
+ * Defines
+ ***************************************************************************/
 
 /** 
  * @brief SDIO Commands  Index
@@ -312,10 +298,8 @@ typedef struct {
 #define SD_CMD_SD_APP_SECURE_WRITE_MKB             ((uint8_t)48) /*!< For SD Card only */
 
 /* Uncomment the following line to select the SDIO Data transfer mode */
-#if !defined (SD_DMA_MODE) && !defined (SD_POLLING_MODE)
 #define SD_DMA_MODE                                ((uint32_t)0x00000000)
-//#define SD_POLLING_MODE                            ((uint32_t)0x00000002)
-#endif
+
 
 /**
  * @brief  SD detection on its memory slot
@@ -376,33 +360,36 @@ typedef struct {
 #define SDIO_TRANSFER_CLK_DIV           ((uint8_t)0x01)
 #endif
 
-#define SD_SDIO_DMA						DMA2
-#define SD_SDIO_DMA_CLK					RCC_AHB1Periph_DMA2
+// #define SD_SDIO_DMA						DMA2
+// #define SD_SDIO_DMA_CLK					RCC_AHB1Periph_DMA2
 
-#define SD_SDIO_DMA_STREAM3				3
-//#define SD_SDIO_DMA_STREAM6			6
 
-#ifdef SD_SDIO_DMA_STREAM3
-#define SD_SDIO_DMA_STREAM				DMA2_Stream3
-#define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
-#define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF3
-#define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF3
-#define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF3
-#define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF3
-#define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF3
-#define SD_SDIO_DMA_IRQn				DMA2_Stream3_IRQn
-#define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream3_IRQHandler
-#elif defined SD_SDIO_DMA_STREAM6
-#define SD_SDIO_DMA_STREAM				DMA2_Stream6
-#define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
-#define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF6
-#define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF6
-#define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF6
-#define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF6
-#define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF6
-#define SD_SDIO_DMA_IRQn				DMA2_Stream6_IRQn
-#define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream6_IRQHandler
-#endif /* SD_SDIO_DMA_STREAM3 */
+// TODO: parameterize this
+
+// #define SD_SDIO_DMA_STREAM3				3
+// //#define SD_SDIO_DMA_STREAM6			6
+
+// #ifdef SD_SDIO_DMA_STREAM3
+// #define SD_SDIO_DMA_STREAM				DMA2_Stream3
+// #define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
+// #define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF3
+// #define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF3
+// #define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF3
+// #define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF3
+// #define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF3
+// #define SD_SDIO_DMA_IRQn				DMA2_Stream3_IRQn
+// #define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream3_IRQHandler
+// #elif defined SD_SDIO_DMA_STREAM6
+// #define SD_SDIO_DMA_STREAM				DMA2_Stream6
+// #define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
+// #define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF6
+// #define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF6
+// #define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF6
+// #define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF6
+// #define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF6
+// #define SD_SDIO_DMA_IRQn				DMA2_Stream6_IRQn
+// #define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream6_IRQHandler
+// #endif /* SD_SDIO_DMA_STREAM3 */
 
 
 /** 
@@ -480,6 +467,11 @@ typedef struct {
 /* SDIO data block size */
 #define SDIO_DATABLOCKSIZE              ((uint32_t)((9 << 4)))
 
+
+/****************************************************************************
+ * Prototypes
+ ***************************************************************************/
+
 extern void SD_LowLevel_DeInit (void);
 extern void SD_LowLevel_Init (void);
 extern void SD_LowLevel_DMA_TxConfig (uint32_t *BufferSRC, uint32_t BufferSize);
@@ -515,7 +507,6 @@ extern SD_Error SD_WaitReadOperation (void);
 extern SD_Error SD_WaitWriteOperation (void);
 extern SD_Error SD_HighSpeed (void);
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 
 #endif
 
