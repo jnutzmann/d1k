@@ -189,7 +189,16 @@ typedef struct {
  * @brief SD Card Status
  */
 typedef struct {
-	volatile uint8_t DAT_BUS_WIDTH;volatile uint8_t SECURED_MODE;volatile uint16_t SD_CARD_TYPE;volatile uint32_t SIZE_OF_PROTECTED_AREA;volatile uint8_t SPEED_CLASS;volatile uint8_t PERFORMANCE_MOVE;volatile uint8_t AU_SIZE;volatile uint16_t ERASE_SIZE;volatile uint8_t ERASE_TIMEOUT;volatile uint8_t ERASE_OFFSET;
+	volatile uint8_t DAT_BUS_WIDTH;
+	volatile uint8_t SECURED_MODE;
+	volatile uint16_t SD_CARD_TYPE;
+	volatile uint32_t SIZE_OF_PROTECTED_AREA;
+	volatile uint8_t SPEED_CLASS;
+	volatile uint8_t PERFORMANCE_MOVE;
+	volatile uint8_t AU_SIZE;
+	volatile uint16_t ERASE_SIZE;
+	volatile uint8_t ERASE_TIMEOUT;
+	volatile uint8_t ERASE_OFFSET;
 } SD_CardStatus;
 
 /** 
@@ -208,8 +217,18 @@ typedef struct
 {
     GPIODefStruct_t write_protect_pin;
     GPIODefStruct_t sd_present_pin;
+    GPIODefStruct_t dat0_pin;
+    GPIODefStruct_t dat1_pin;
+    GPIODefStruct_t dat2_pin;
+    GPIODefStruct_t dat3_pin;
+    GPIODefStruct_t cmd_pin;
+    GPIODefStruct_t ck_pin;
+    GPIODefStruct_t sd_led;
+
     bool use_write_protect;
     bool use_sd_present;
+    bool use_sd_led;
+    bool use_4_bit;
 
 } SD_DriverConfig_t;
 
@@ -359,37 +378,6 @@ typedef struct
 #ifndef SDIO_TRANSFER_CLK_DIV
 #define SDIO_TRANSFER_CLK_DIV           ((uint8_t)0x01)
 #endif
-
-// #define SD_SDIO_DMA						DMA2
-// #define SD_SDIO_DMA_CLK					RCC_AHB1Periph_DMA2
-
-
-// TODO: parameterize this
-
-// #define SD_SDIO_DMA_STREAM3				3
-// //#define SD_SDIO_DMA_STREAM6			6
-
-// #ifdef SD_SDIO_DMA_STREAM3
-// #define SD_SDIO_DMA_STREAM				DMA2_Stream3
-// #define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
-// #define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF3
-// #define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF3
-// #define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF3
-// #define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF3
-// #define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF3
-// #define SD_SDIO_DMA_IRQn				DMA2_Stream3_IRQn
-// #define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream3_IRQHandler
-// #elif defined SD_SDIO_DMA_STREAM6
-// #define SD_SDIO_DMA_STREAM				DMA2_Stream6
-// #define SD_SDIO_DMA_CHANNEL				DMA_Channel_4
-// #define SD_SDIO_DMA_FLAG_FEIF			DMA_FLAG_FEIF6
-// #define SD_SDIO_DMA_FLAG_DMEIF			DMA_FLAG_DMEIF6
-// #define SD_SDIO_DMA_FLAG_TEIF			DMA_FLAG_TEIF6
-// #define SD_SDIO_DMA_FLAG_HTIF			DMA_FLAG_HTIF6
-// #define SD_SDIO_DMA_FLAG_TCIF			DMA_FLAG_TCIF6
-// #define SD_SDIO_DMA_IRQn				DMA2_Stream6_IRQn
-// #define SD_SDIO_DMA_IRQHANDLER			DMA2_Stream6_IRQHandler
-// #endif /* SD_SDIO_DMA_STREAM3 */
 
 
 /** 
