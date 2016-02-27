@@ -238,7 +238,7 @@
 #include <gpio.h>
 #include <stm32f4xx_gpio.h>
 
-
+#include "orbit.h"
 /****************************************************************************
  * Definitions
  ***************************************************************************/
@@ -283,13 +283,17 @@ static SD_Error SDEnWideBus (FunctionalState NewState);
 static SD_Error IsCardProgramming (uint8_t *pstatus);
 static SD_Error FindSCR (uint16_t rca, uint32_t *pscr);
 
-
 uint8_t convert_from_bytes_to_power_of_two (uint16_t NumberOfBytes);
 
 
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
+
+void sd_driver_config(SD_DriverConfig_t *config)
+{
+  memcpy(&driverConfig, config, sizeof(SD_DriverConfig_t));
+}
 
 bool sd_write_enabled(void) {
 	if (driverConfig.use_write_protect)	{
@@ -302,7 +306,7 @@ bool sd_write_enabled(void) {
 
 bool sd_card_present(void) {
 	if (driverConfig.use_sd_present)	{
-		return GPIO_ReadInputDataBit(driverConfig.sd_present_pin.GPIOx,
+		return !GPIO_ReadInputDataBit(driverConfig.sd_present_pin.GPIOx,
 									 driverConfig.sd_present_pin.GPIO_Pin);
 	} else {
 		return true;
@@ -336,8 +340,20 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 		GPIO_Init(driverConfig.sd_present_pin.GPIOx, &gpio_init);
 	}
 
-	// Configure the NVIC Preemption Priority Bits 
-	NVIC_PriorityGroupConfig (NVIC_PriorityGroup_1);
+  if (driverConfig.use_sd_led) {
+    RCC_AHB1PeriphClockCmd(driverConfig.sd_led_pin.RCC_AHB1Periph, ENABLE);
+    GPIO_InitTypeDef gpio_init = {
+        .GPIO_Pin = driverConfig.sd_led_pin.GPIO_Pin,
+        .GPIO_Mode = GPIO_Mode_OUT,
+        .GPIO_OType = GPIO_OType_PP,
+        .GPIO_PuPd = GPIO_PuPd_NOPULL,
+        .GPIO_Speed = GPIO_Speed_2MHz
+    };
+    GPIO_Init(driverConfig.sd_led_pin.GPIOx, &gpio_init);
+    GPIO_SetBits(driverConfig.sd_led_pin.GPIOx, driverConfig.sd_led_pin.GPIO_Pin);
+  }
+
+	// Configure the NVIC Preemption Priority Bits
 	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
@@ -346,12 +362,15 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream6_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_Init (&NVIC_InitStructure);
-	
+
 	SD_LowLevel_DeInit();
 	SD_LowLevel_Init();
-	
+
 	//Check disk initialized
-	if (SD_Init() == SD_OK) {
+
+  SD_Error e = SD_Init();
+  orbit_helios_fatfs_debug(e, true);
+	if (e == SD_OK) {
 		TM_FATFS_SD_SDIO_Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT flag */
 	} else {
 		TM_FATFS_SD_SDIO_Stat |= STA_NOINIT;
@@ -523,6 +542,7 @@ SD_Error SD_Init (void)
 
 	if (errorstatus != SD_OK) {
 		logf ("SD_PowerON failed\r\n");
+    //orbit_helios_fatfs_debug2(1,true);
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
 		return (errorstatus);
 	}
@@ -533,6 +553,7 @@ SD_Error SD_Init (void)
 
 	if (errorstatus != SD_OK) {
 		logf ("SD_InitializeCards failed\r\n");
+    orbit_helios_fatfs_debug2(2,true);
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
 		return (errorstatus);
 	}
@@ -560,6 +581,7 @@ SD_Error SD_Init (void)
 	}
 	else {
 		logf ("SD_SelectDeselect failed\r\n");
+    orbit_helios_fatfs_debug2(3,true);
 	}
 
 	if (errorstatus == SD_OK) {
@@ -573,6 +595,7 @@ SD_Error SD_Init (void)
 	}
 	else {
 		logf ("SD_EnableWideBusOperation failed\r\n");
+    orbit_helios_fatfs_debug2(4,true);
 	}
 
 	if (errorstatus == SD_OK) {
@@ -685,6 +708,7 @@ SD_Error SD_PowerON (void)
 
 	if (errorstatus != SD_OK) {
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
+    orbit_helios_fatfs_debug(10,true);
 		return (errorstatus);
 	}
 
@@ -703,6 +727,7 @@ SD_Error SD_PowerON (void)
 
 	errorstatus = CmdResp7Error ();
 
+  orbit_helios_fatfs_debug2(errorstatus,true);
 	if (errorstatus == SD_OK) {
 		CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0; /*!< SD Card 2.0 */
 		SDType = SD_HIGH_CAPACITY;
@@ -744,6 +769,7 @@ SD_Error SD_PowerON (void)
 			errorstatus = CmdResp1Error (SD_CMD_APP_CMD );
 
 			if (errorstatus != SD_OK) {
+        orbit_helios_fatfs_debug2(12,true);
 				return (errorstatus);
 			}
 			SDIO_CmdInitStructure.SDIO_Argument = SD_VOLTAGE_WINDOW_SD | SDType;
@@ -755,6 +781,7 @@ SD_Error SD_PowerON (void)
 
 			errorstatus = CmdResp3Error ();
 			if (errorstatus != SD_OK) {
+        orbit_helios_fatfs_debug2(13,true);
 				return (errorstatus);
 			}
 
@@ -764,6 +791,7 @@ SD_Error SD_PowerON (void)
 		}
 		if (count >= SD_MAX_VOLT_TRIAL ) {
 			errorstatus = SD_INVALID_VOLTRANGE;
+      orbit_helios_fatfs_debug2(11,true);
 			return (errorstatus);
 		}
 
@@ -772,7 +800,7 @@ SD_Error SD_PowerON (void)
 		}
 
 	}/*!< else MMC Card */
-
+  //orbit_helios_fatfs_debug2(errorstatus,true);
 	return (errorstatus);
 }
 
@@ -2160,6 +2188,8 @@ static SD_Error CmdResp7Error (void)
 		status = SDIO ->STA;
 	}
 
+  if ((status & SDIO_FLAG_CTIMEOUT)) { orbit_helios_fatfs_debug(10, true); }
+
 	if ((timeout == 0) || (status & SDIO_FLAG_CTIMEOUT)) {
 		/*!< Card is not V2.0 complient or card does not support the set voltage range */
 		errorstatus = SD_CMD_RSP_TIMEOUT;
@@ -2972,6 +3002,35 @@ void SD_LowLevel_Init (void) {
         SD_Init_SDIO_Pin(&driverConfig.dat2_pin);
         SD_Init_SDIO_Pin(&driverConfig.dat3_pin);
     }
+
+
+    if (driverConfig.use_sd_present) {
+        GPIO_InitTypeDef gp_init = {
+          .GPIO_Speed = GPIO_Speed_25MHz,
+          .GPIO_PuPd = GPIO_PuPd_NOPULL,
+          .GPIO_OType = GPIO_OType_PP,
+          .GPIO_Mode = GPIO_Mode_IN,
+          .GPIO_Pin = driverConfig.sd_present_pin.GPIO_Pin
+      };
+
+      RCC_AHB1PeriphClockCmd(driverConfig.sd_present_pin.RCC_AHB1Periph, ENABLE);
+      GPIO_Init(driverConfig.sd_present_pin.GPIOx, &gp_init);
+    }
+
+    if (driverConfig.use_write_protect) {
+      GPIO_InitTypeDef gp_init = {
+          .GPIO_Speed = GPIO_Speed_25MHz,
+          .GPIO_PuPd = GPIO_PuPd_NOPULL,
+          .GPIO_OType = GPIO_OType_PP,
+          .GPIO_Mode = GPIO_Mode_IN,
+          .GPIO_Pin = driverConfig.write_protect_pin.GPIO_Pin
+      };
+
+    RCC_AHB1PeriphClockCmd(driverConfig.write_protect_pin.RCC_AHB1Periph, ENABLE);
+    GPIO_Init(driverConfig.write_protect_pin.GPIOx, &gp_init);
+  }
+
+
 
 	/* Enable the SDIO APB2 Clock */
 	RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;

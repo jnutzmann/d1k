@@ -7,7 +7,7 @@
 /* storage control module to the FatFs module with a defined API.        */
 /*-----------------------------------------------------------------------*/
 
-#include "fatfs/diskio.h"		/* FatFs lower layer API */
+#include "fatfs/diskio.h"
 #include "fatfs/ff.h"
 
 /* Not USB in use */
@@ -65,7 +65,7 @@
 
 /* Include SD card files if is enabled */
 #if FATFS_USE_SDIO == 1
-	#include "fatfs_sd_sdio.h"
+	#include "fatfs/drivers/fatfs_sd_sdio.h"
 #elif FATFS_USE_SDIO == 0
 	#include "fatfs_sd.h"
 #endif

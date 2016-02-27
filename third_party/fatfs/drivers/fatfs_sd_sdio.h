@@ -223,7 +223,7 @@ typedef struct
     GPIODefStruct_t dat3_pin;
     GPIODefStruct_t cmd_pin;
     GPIODefStruct_t ck_pin;
-    GPIODefStruct_t sd_led;
+    GPIODefStruct_t sd_led_pin;
 
     bool use_write_protect;
     bool use_sd_present;
@@ -459,6 +459,9 @@ typedef struct
 /****************************************************************************
  * Prototypes
  ***************************************************************************/
+
+void sd_driver_config(SD_DriverConfig_t *config);
+
 
 extern void SD_LowLevel_DeInit (void);
 extern void SD_LowLevel_Init (void);
