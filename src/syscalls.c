@@ -34,7 +34,7 @@ void _exit (int32_t status)
   while (1) {}
 }
 
-int _write(int32_t file, uint8_t *ptr, int32_t len)
+__attribute__ ((weak)) int _write(int32_t file, uint8_t *ptr, int32_t len)
 {
     // TODO: Implement printf
     return len;
