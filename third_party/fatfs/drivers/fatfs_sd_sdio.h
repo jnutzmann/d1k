@@ -460,7 +460,7 @@ typedef struct
  * Prototypes
  ***************************************************************************/
 
-void sd_driver_config(SD_DriverConfig_t *config);
+void sd_driver_config(const SD_DriverConfig_t *config);
 
 
 extern void SD_LowLevel_DeInit (void);

@@ -290,7 +290,7 @@ uint8_t convert_from_bytes_to_power_of_two (uint16_t NumberOfBytes);
  * Public Functions
  ***************************************************************************/
 
-void sd_driver_config(SD_DriverConfig_t *config)
+void sd_driver_config(const SD_DriverConfig_t *config)
 {
   memcpy(&driverConfig, config, sizeof(SD_DriverConfig_t));
 }
