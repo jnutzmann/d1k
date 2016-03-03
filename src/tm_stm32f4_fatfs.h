@@ -444,10 +444,9 @@ f_open(&fil, "SD:my_file_sd.txt", FA...);
 #include "stm32f4xx.h"
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_gpio.h"
-#include "defines.h"
-#include "tm_stm32f4_gpio.h"
-#include "ff.h"
-#include "diskio.h"
+#include "fatfs_defines.h"
+#include "fatfs/ff.h"
+#include "fatfs/diskio.h"
 #include "string.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -508,7 +507,7 @@ typedef struct {
 
 /**
  * @}
- */
+*/
 
 /**
  * @defgroup TM_FATFS_Functions
