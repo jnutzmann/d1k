@@ -369,7 +369,6 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 	//Check disk initialized
 
   SD_Error e = SD_Init();
-  orbit_helios_fatfs_debug(e, true);
 	if (e == SD_OK) {
 		TM_FATFS_SD_SDIO_Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT flag */
 	} else {
@@ -553,7 +552,6 @@ SD_Error SD_Init (void)
 
 	if (errorstatus != SD_OK) {
 		logf ("SD_InitializeCards failed\r\n");
-    orbit_helios_fatfs_debug2(2,true);
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
 		return (errorstatus);
 	}
@@ -581,7 +579,6 @@ SD_Error SD_Init (void)
 	}
 	else {
 		logf ("SD_SelectDeselect failed\r\n");
-    orbit_helios_fatfs_debug2(3,true);
 	}
 
 	if (errorstatus == SD_OK) {
@@ -595,7 +592,6 @@ SD_Error SD_Init (void)
 	}
 	else {
 		logf ("SD_EnableWideBusOperation failed\r\n");
-    orbit_helios_fatfs_debug2(4,true);
 	}
 
 	if (errorstatus == SD_OK) {
@@ -708,7 +704,6 @@ SD_Error SD_PowerON (void)
 
 	if (errorstatus != SD_OK) {
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
-    orbit_helios_fatfs_debug(10,true);
 		return (errorstatus);
 	}
 
@@ -727,7 +722,6 @@ SD_Error SD_PowerON (void)
 
 	errorstatus = CmdResp7Error ();
 
-  orbit_helios_fatfs_debug2(errorstatus,true);
 	if (errorstatus == SD_OK) {
 		CardType = SDIO_STD_CAPACITY_SD_CARD_V2_0; /*!< SD Card 2.0 */
 		SDType = SD_HIGH_CAPACITY;
@@ -769,7 +763,6 @@ SD_Error SD_PowerON (void)
 			errorstatus = CmdResp1Error (SD_CMD_APP_CMD );
 
 			if (errorstatus != SD_OK) {
-        orbit_helios_fatfs_debug2(12,true);
 				return (errorstatus);
 			}
 			SDIO_CmdInitStructure.SDIO_Argument = SD_VOLTAGE_WINDOW_SD | SDType;
@@ -781,7 +774,6 @@ SD_Error SD_PowerON (void)
 
 			errorstatus = CmdResp3Error ();
 			if (errorstatus != SD_OK) {
-        orbit_helios_fatfs_debug2(13,true);
 				return (errorstatus);
 			}
 
@@ -791,7 +783,6 @@ SD_Error SD_PowerON (void)
 		}
 		if (count >= SD_MAX_VOLT_TRIAL ) {
 			errorstatus = SD_INVALID_VOLTRANGE;
-      orbit_helios_fatfs_debug2(11,true);
 			return (errorstatus);
 		}
 
@@ -2188,7 +2179,7 @@ static SD_Error CmdResp7Error (void)
 		status = SDIO ->STA;
 	}
 
-  if ((status & SDIO_FLAG_CTIMEOUT)) { orbit_helios_fatfs_debug(10, true); }
+  //if ((status & SDIO_FLAG_CTIMEOUT)) { orbit_helios_fatfs_debug(10, true); }
 
 	if ((timeout == 0) || (status & SDIO_FLAG_CTIMEOUT)) {
 		/*!< Card is not V2.0 complient or card does not support the set voltage range */
