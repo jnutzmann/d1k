@@ -232,8 +232,7 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_sdio.h"
 #include "misc.h"
-#include "fatfs/drivers/fatfs_sd_sdio.h"
-#include "fatfs_sd_sdio.h"
+#include "fatfs_sdio_driver.h"
 #include <string.h>
 #include <gpio.h>
 #include <stm32f4xx_gpio.h>
