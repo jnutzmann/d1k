@@ -28,8 +28,8 @@
    ----------------------------------------------------------------------
 @endverbatim
  */
-#ifndef TM_FATFS_H
-#define TM_FATFS_H 170
+#ifndef FATFS_FUNCS_H
+#define FATFS_FUNCS_H 170
 
 /**
  * @addtogroup TM_STM32F4xx_Libraries
@@ -55,25 +55,6 @@
  *
  * Library works with SPI or SDIO mode. Also, when in SDIO mode, you can set to 1- or 4-bit mode.
  * By default, SDIO with 4-bit mode is used, so you will look into right column on table below.
- * 
- * SD CARD PINS
- * 	   
-@verbatim
-   _________________
-  / 1 2 3 4 5 6 7 8 |  NR   |SDIO INTERFACE										|SPI INTERFACE
- /					|   	|NAME		STM32F4XX		DESCRIPTION				|NAME	STM32F4XX	DESCRIPTION 
-/ 9					|   	|			4-BIT	1-BIT							| 
-| 					|   	|													| 
-|					|   1	|CD/DAT3	PC11	-		Connector data line 3	|CS		PB5			Chip select for SPI 
-|					|   2	|CMD		PD2		PD2		Command/Response line	|MOSI	PA7			Data input for SPI 
-|					|   3	|VSS1		GND		GND		GND						|VSS1	GND			GND 
-|   SD CARD Pinout	|   4	|VDD		3.3V	3.3V	3.3V Power supply		|VDD	3.3V		3.3V Power supply 
-|					|   5	|CLK		PC12	PC12	Clock					|SCK	PA5			Clock for SPI 
-|					|   6	|VSS2		GND		GND		GND						|VSS2	GND			GND 
-|					|   7	|DAT0		PC8		PC8		Connector data line 0	|MISO	PA6			Data output for SPI 
-|					|   8	|DAT1		PC9		-		Connector data line 1	|-		-			- 
-|___________________|   9	|DAT2		PC10	-		Connector data line 2	|-		-			- 
-@endverbatim
  *	
  * \par SDIO Communication
  * 
@@ -88,8 +69,6 @@
  * For SDIO communication, you will need at least these files:
  *
 @verbatim
-- tm_stm32f4_fatfs.h
-- tm_stm32f4_fatfs.c
 - fatfs/diskio.h
 - fatfs/diskio.c
 - fatfs/ff.h
@@ -114,8 +93,6 @@
  * Files, needed for SPI:
  *
 @verbatim
-- tm_stm32f4_fatfs.h
-- tm_stm32f4_fatfs.c
 - fatfs/diskio.h
 - fatfs/diskio.c
 - fatfs/ff.h
@@ -383,9 +360,9 @@ f_open(&fil, "SD:my_file_sd.txt", FA...);
  * I've added support for easy search function for files/folders on your FATFS related device. It works with any device (SDCARD, USB, etc),
  * because you specify starting path for search which is specified by FATFS.
  *
- * There are 2 functions for search, one is @ref TM_FATFS_Search which you should call when you want to do a search operations in your FATFS structure
+ * There are 2 functions for search, one is @ref fatfs_search which you should call when you want to do a search operations in your FATFS structure
  *
- * Second is @ref TM_FATFS_SearchCallback which is called anytime file/folder is found on system so user can do it's job with file.
+ * Second is @ref fatfs_searchCallback which is called anytime file/folder is found on system so user can do it's job with file.
  *
  * Check documentation for these 2 functions for more info.
  *
@@ -493,7 +470,7 @@ f_open(&fil, "SD:my_file_sd.txt", FA...);
 typedef struct {
 	uint32_t TotalSize; /*!< Total size of memory */
 	uint32_t FreeSize;  /*!< Free size of memory */
-} TM_FATFS_Size_t;
+} fatfs_size_t;
 
 /**
  * @brief  FATFS find structure
@@ -501,7 +478,7 @@ typedef struct {
 typedef struct {
 	uint32_t FoldersCount; /*!< Number of folders in last search operation */
 	uint32_t FilesCount;   /*!< Number of files in last search operation */
-} TM_FATFS_Search_t;
+} fatfs_search_t;
 
 
 /**
@@ -517,30 +494,30 @@ typedef struct {
 /**
  * @brief   Gets total and free memory sizes of any drive
  * @param   *str: Pointer to string for drive to be checked
- * @param   *SizeStruct: Pointer to empty @ref TM_FATFS_Size_t structure to store data about memory
+ * @param   *SizeStruct: Pointer to empty @ref fatfs_size_t structure to store data about memory
  * @retval  FRESULT structure members. If data are valid, FR_OK is returned
  * @example Get memory sizes of USB device:
- *             TM_FATFS_GetDriveSize("USB:", &SizeStruct);
+ *             fatfs_get_drive_size("USB:", &SizeStruct);
  */
-FRESULT TM_FATFS_GetDriveSize(char* str, TM_FATFS_Size_t* SizeStruct);
+FRESULT fatfs_get_drive_size(char* str, fatfs_size_t* SizeStruct);
 
 /**
  * @brief  Gets SDCARD drive size and free space
- * @note   Function is deprecated and will be removed, use @ref TM_FATFS_GetDriveSize instead!
+ * @note   Function is deprecated and will be removed, use @ref fatfs_get_drive_size instead!
  * @param  *total: Pointer to variable to store total size of SDCARD
  * @param  *free: Pointer to variable to store free space on SDCARD
  * @retval FRESULT structure members. If data are valid, FR_OK is returned
  */
-FRESULT TM_FATFS_DriveSize(uint32_t* total, uint32_t* free);
+FRESULT fatfs_sd_drive_size(uint32_t* total, uint32_t* free);
 
 /**
  * @brief  Gets USB drive size and free space
- * @note   Function is deprecated and will be removed, use @ref TM_FATFS_GetDriveSize instead!
+ * @note   Function is deprecated and will be removed, use @ref fatfs_get_drive_size instead!
  * @param  *total: Pointer to variable to store total size of USB disk
  * @param  *free: Pointer to variable to store free space on USB disk
  * @retval FRESULT structure members. If data are valid, FR_OK is returned
  */
-FRESULT TM_FATFS_USBDriveSize(uint32_t* total, uint32_t* free);
+FRESULT fatfs_usb_drive_size(uint32_t* total, uint32_t* free);
 
 /**
  * @brief  Truncates beginning of file
@@ -548,7 +525,7 @@ FRESULT TM_FATFS_USBDriveSize(uint32_t* total, uint32_t* free);
  * Example:
  *	- You have a file, its content is: "abcdefghijklmnoprstuvwxyz",
  *	- You want to truncate first 5 bytes,
- *	- Call @ref TM_FATFS_TruncateBeginning(&opened_file, 5);
+ *	- Call @ref fatfs_truncate_beginning(&opened_file, 5);
  *	- You will get new file data: "fghijklmnoprstuvwxyz"
  
  * @param  *fil: Pointer to already opened file
@@ -556,18 +533,7 @@ FRESULT TM_FATFS_USBDriveSize(uint32_t* total, uint32_t* free);
  * @note   If index is more than file size, everything will be truncated, but file will not be deleted
  * @retval FRESULT struct members. If everything ok, FR_OK is returned
  */
-FRESULT TM_FATFS_TruncateBeginning(FIL* fil, uint32_t index);
-
-/**
- * @brief  Checks card detect pin (if activated) if card is inserted
- * @note   Pin must be set low in order to get card inserted, otherwise card is not inserted
- * @note   Card detect pin must be activated in order to get this functionality to work
- * @param  None
- * @retval Card detected status:
- *            - 0: Card is not inserted
- *            - > 0: Card is inserted
- */
-uint8_t TM_FATFS_CheckCardDetectPin(void);
+FRESULT fatfs_truncate_beginning(FIL* fil, uint32_t index);
 
 /**
  * @brief  Searches on SD card for files and folders
@@ -579,11 +545,11 @@ int user_func(void) {
 	char working_buffer[200];
 	
 	FRESULT res;
-	TM_FATFS_Search_t FindStructure;
+	fatfs_search_t FindStructure;
 	
 	//mount first
 	
-	if ((res = TM_FATFS_Search("SD:", working_buffer, sizeof(working_buffer), &FindStructure)) == FR_OK) {
+	if ((res = fatfs_search("SD:", working_buffer, sizeof(working_buffer), &FindStructure)) == FR_OK) {
 		//Search was OK
 	} else if (res == FR_NOT_ENOUGH_CORE) {
 		//Not enough memory for full search operation
@@ -592,7 +558,7 @@ int user_func(void) {
 	//unmount
 }
 
-uint8_t TM_FATFS_SearchCallback(char* path, uint8_t is_file, TM_FATFS_Search_t* FindStructure) {
+uint8_t fatfs_searchCallback(char* path, uint8_t is_file, fatfs_search_t* FindStructure) {
 	//Check for file/folder
 	if (if_file) {
 		printf("File: %s", path);
@@ -608,10 +574,10 @@ uint8_t TM_FATFS_SearchCallback(char* path, uint8_t is_file, TM_FATFS_Search_t* 
  * @param  *tmp_buffer: Pointer to empty buffer where temporary data for filepath will be stored. It's size must be larger than bigest filepath on FATFS.
  *            Set this parameter to NULL and function will use @ref LIB_ALLOC_FUNC() to allocate memory for tmp buffer of size @arg tmp_buffer_size
  * @param  tmp_buffer_size: Number of bytes reserver for tmp_buffer so we won't overlaps buffer
- * @param  *FindStructure: Pointer to @ref TM_FATFS_Search_t structure
+ * @param  *FindStructure: Pointer to @ref fatfs_search_t structure
  * @retval Member of @ref FRESULT enumeration
  */
-FRESULT TM_FATFS_Search(char* Folder, char* tmp_buffer, uint16_t tmp_buffer_size, TM_FATFS_Search_t* FindStructure);
+FRESULT fatfs_search(char* Folder, char* tmp_buffer, uint16_t tmp_buffer_size, fatfs_search_t* FindStructure);
 
 /**
  * @brief  Search procedure callback function with filename result
@@ -619,13 +585,13 @@ FRESULT TM_FATFS_Search(char* Folder, char* tmp_buffer, uint16_t tmp_buffer_size
  * @param  is_file: Is item a file or directory:
  *            - 0: Item is folder
  *            - > 0: Item is file
- * @param  Pointer to @ref TM_FATFS_Search_t structure which was passed to @ref TM_FATFS_Search with updated data
+ * @param  Pointer to @ref fatfs_search_t structure which was passed to @ref fatfs_search with updated data
  * @retval Search status:
  *            - 0: Stop search operation
  *            - > 0: Continue with search
  * @note   With __weak parameter to prevent link errors if not defined by user
  */
-uint8_t TM_FATFS_SearchCallback(char* path, uint8_t is_file, TM_FATFS_Search_t* FindStructure);
+uint8_t fatfs_searchCallback(char* path, uint8_t is_file, fatfs_search_t* FindStructure);
 
 /**
  * @}
