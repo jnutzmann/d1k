@@ -65,7 +65,7 @@
 
 /* Include SD card files if is enabled */
 #if FATFS_USE_SDIO == 1
-	#include "fatfs/drivers/fatfs_sd_sdio.h"
+	#include "fatfs_sdio_driver.h"
 #elif FATFS_USE_SDIO == 0
 	#include "fatfs_sd.h"
 #endif

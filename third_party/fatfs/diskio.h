@@ -9,7 +9,6 @@
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
 #include "fatfs/integer.h"
-#include "fatfs_defines.h"
 #include "fatfs/attributes.h"
 
 /* Status of Disk Functions */
