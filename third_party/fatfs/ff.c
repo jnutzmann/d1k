@@ -59,26 +59,26 @@
 
 /* Timestamp feature */
 #if _FS_NORTC == 1
-#if _NORTC_YEAR < 1980 || _NORTC_YEAR > 2107 || _NORTC_MON < 1 || _NORTC_MON > 12 || _NORTC_MDAY < 1 || _NORTC_MDAY > 31
-#error Invalid _FS_NORTC settings
-#endif
-#define GET_FATTIME()	((DWORD)(_NORTC_YEAR - 1980) << 25 | (DWORD)_NORTC_MON << 21 | (DWORD)_NORTC_MDAY << 16)
+	#if _NORTC_YEAR < 1980 || _NORTC_YEAR > 2107 || _NORTC_MON < 1 || _NORTC_MON > 12 || _NORTC_MDAY < 1 || _NORTC_MDAY > 31
+		#error Invalid _FS_NORTC settings
+	#endif
+	#define GET_FATTIME()	((DWORD)(_NORTC_YEAR - 1980) << 25 | (DWORD)_NORTC_MON << 21 | (DWORD)_NORTC_MDAY << 16)
 #else
-#define GET_FATTIME()	get_fattime()
+	#define GET_FATTIME()	get_fattime()
 #endif
 
 
 /* File access control feature */
 #if _FS_LOCK
-#if _FS_READONLY
-#error _FS_LOCK must be 0 at read-only configuration
-#endif
-typedef struct {
-	FATFS *fs;		/* Object ID 1, volume (NULL:blank entry) */
-	DWORD clu;		/* Object ID 2, directory (0:root) */
-	WORD idx;		/* Object ID 3, directory index */
-	WORD ctr;		/* Object open counter, 0:none, 0x01..0xFF:read mode open count, 0x100:write mode */
-} FILESEM;
+	#if _FS_READONLY
+		#error _FS_LOCK must be 0 at read-only configuration
+	#endif
+	typedef struct {
+		FATFS *fs;		/* Object ID 1, volume (NULL:blank entry) */
+		DWORD clu;		/* Object ID 2, directory (0:root) */
+		WORD idx;		/* Object ID 3, directory index */
+		WORD ctr;		/* Object open counter, 0:none, 0x01..0xFF:read mode open count, 0x100:write mode */
+	} FILESEM;
 #endif
 
 
