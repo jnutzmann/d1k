@@ -227,17 +227,16 @@
  * Includes
  ***************************************************************************/
 
+#include "fatfs_sdio_driver.h"
+#include "gpio.h"
+#include "misc.h"
+#include "orbit.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_dma.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_sdio.h"
-#include "misc.h"
-#include "fatfs_sdio_driver.h"
-#include <string.h>
-#include <gpio.h>
-#include <stm32f4xx_gpio.h>
+#include "string.h"
 
-#include "orbit.h"
 /****************************************************************************
  * Definitions
  ***************************************************************************/
@@ -256,15 +255,15 @@ static uint8_t SDSTATUS_Tab[16];
 volatile uint32_t StopCondition = 0;
 volatile SD_Error TransferError = SD_OK;
 volatile uint32_t TransferEnd = 0, DMAEndOfTransfer = 0;
+
 SD_CardInfo SDCardInfo;
 
 SDIO_InitTypeDef SDIO_InitStructure;
 SDIO_CmdInitTypeDef SDIO_CmdInitStructure;
 SDIO_DataInitTypeDef SDIO_DataInitStructure;
 
-static volatile DSTATUS TM_FATFS_SD_SDIO_Stat = STA_NOINIT;	/* Physical drive status */
+static volatile DSTATUS FATFS_SD_SDIO_Stat = STA_NOINIT;	/* Physical drive status */
 
-// TODO: initialize this!!
 static SD_DriverConfig_t driverConfig;
 
 
@@ -291,7 +290,7 @@ uint8_t convert_from_bytes_to_power_of_two (uint16_t NumberOfBytes);
 
 void sd_driver_config(const SD_DriverConfig_t *config)
 {
-  memcpy(&driverConfig, config, sizeof(SD_DriverConfig_t));
+    memcpy(&driverConfig, config, sizeof(SD_DriverConfig_t));
 }
 
 bool sd_write_enabled(void) {
@@ -304,7 +303,7 @@ bool sd_write_enabled(void) {
 }
 
 bool sd_card_present(void) {
-	if (driverConfig.use_sd_present)	{
+	if (driverConfig.use_sd_present) {
 		return !GPIO_ReadInputDataBit(driverConfig.sd_present_pin.GPIOx,
 									 driverConfig.sd_present_pin.GPIO_Pin);
 	} else {
@@ -312,7 +311,7 @@ bool sd_card_present(void) {
 	}
 }
 
-DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
+DSTATUS fatfs_sd_sdio_disk_initialize(void) {
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	if (driverConfig.use_write_protect) {
@@ -328,7 +327,9 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 	}
 
 	if (driverConfig.use_sd_present) {
+
 		RCC_AHB1PeriphClockCmd(driverConfig.sd_present_pin.RCC_AHB1Periph, ENABLE);
+
 		GPIO_InitTypeDef gpio_init = {
 			.GPIO_Pin = driverConfig.sd_present_pin.GPIO_Pin,
 			.GPIO_Mode = GPIO_Mode_IN,
@@ -336,21 +337,24 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 			.GPIO_PuPd = GPIO_PuPd_NOPULL,
 			.GPIO_Speed = GPIO_Speed_2MHz
 		};
+
 		GPIO_Init(driverConfig.sd_present_pin.GPIOx, &gpio_init);
 	}
 
-  if (driverConfig.use_sd_led) {
-    RCC_AHB1PeriphClockCmd(driverConfig.sd_led_pin.RCC_AHB1Periph, ENABLE);
-    GPIO_InitTypeDef gpio_init = {
-        .GPIO_Pin = driverConfig.sd_led_pin.GPIO_Pin,
-        .GPIO_Mode = GPIO_Mode_OUT,
-        .GPIO_OType = GPIO_OType_PP,
-        .GPIO_PuPd = GPIO_PuPd_NOPULL,
-        .GPIO_Speed = GPIO_Speed_2MHz
-    };
-    GPIO_Init(driverConfig.sd_led_pin.GPIOx, &gpio_init);
-    GPIO_SetBits(driverConfig.sd_led_pin.GPIOx, driverConfig.sd_led_pin.GPIO_Pin);
-  }
+	if (driverConfig.use_sd_led) {
+
+		RCC_AHB1PeriphClockCmd(driverConfig.sd_led_pin.RCC_AHB1Periph, ENABLE);
+		
+		GPIO_InitTypeDef gpio_init = {
+		    .GPIO_Pin = driverConfig.sd_led_pin.GPIO_Pin,
+		    .GPIO_Mode = GPIO_Mode_OUT,
+		    .GPIO_OType = GPIO_OType_PP,
+		    .GPIO_PuPd = GPIO_PuPd_NOPULL,
+		    .GPIO_Speed = GPIO_Speed_2MHz
+		};
+
+		GPIO_Init(driverConfig.sd_led_pin.GPIOx, &gpio_init);
+	}
 
 	// Configure the NVIC Preemption Priority Bits
 	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
@@ -367,40 +371,43 @@ DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void) {
 
 	//Check disk initialized
 
-  SD_Error e = SD_Init();
+	SD_Error e = SD_Init();	
+
 	if (e == SD_OK) {
-		TM_FATFS_SD_SDIO_Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT flag */
+		FATFS_SD_SDIO_Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT flag */
 	} else {
-		TM_FATFS_SD_SDIO_Stat |= STA_NOINIT;
+		FATFS_SD_SDIO_Stat |= STA_NOINIT;
 	}
+
 	//Check write protected
 	if (!sd_write_enabled()) {
-		TM_FATFS_SD_SDIO_Stat |= STA_PROTECT;
+		FATFS_SD_SDIO_Stat |= STA_PROTECT;
 	} else {
-		TM_FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
+		FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
 	}
 	
-	return TM_FATFS_SD_SDIO_Stat;
+	return FATFS_SD_SDIO_Stat;
 }
 
-DSTATUS TM_FATFS_SD_SDIO_disk_status(void) {
+DSTATUS fatfs_sd_sdio_disk_status(void) {
+	
 	if (SD_Detect() != SD_PRESENT) {
 		return STA_NOINIT;
 	}
 	
 	if (!sd_write_enabled()) {
-		TM_FATFS_SD_SDIO_Stat |= STA_PROTECT;
+		FATFS_SD_SDIO_Stat |= STA_PROTECT;
 	} else {
-		TM_FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
+		FATFS_SD_SDIO_Stat &= ~STA_PROTECT;
 	}
 	
-	return TM_FATFS_SD_SDIO_Stat;
+	return FATFS_SD_SDIO_Stat;
 }
 
-DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count) {
+DRESULT fatfs_sd_sdio_disk_read(BYTE *buff, DWORD sector, UINT count) {
 	SD_Error Status = SD_OK;
 
-	if ((TM_FATFS_SD_SDIO_Stat & STA_NOINIT)) {
+	if ((FATFS_SD_SDIO_Stat & STA_NOINIT)) {
 		return RES_NOTRDY;
 	}
 	
@@ -409,7 +416,7 @@ DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count) {
 		DWORD scratch[BLOCK_SIZE / 4];
 
 		while (count--) {
-			res = TM_FATFS_SD_SDIO_disk_read((void *)scratch, sector++, 1);
+			res = fatfs_sd_sdio_disk_read((void *)scratch, sector++, 1);
 
 			if (res != RES_OK) {
 				break;
@@ -442,7 +449,7 @@ DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count) {
 	}
 }
 
-DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count) {
+DRESULT fatfs_sd_sdio_disk_write(const BYTE *buff, DWORD sector, UINT count) {
 	SD_Error Status = SD_OK;
 
 	if (!sd_write_enabled()) {
@@ -459,7 +466,7 @@ DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count) 
 
 		while (count--) {
 			memcpy(scratch, buff, BLOCK_SIZE);
-			res = TM_FATFS_SD_SDIO_disk_write((void *)scratch, sector++, 1);
+			res = fatfs_sd_sdio_disk_write((void *)scratch, sector++, 1);
 
 			if (res != RES_OK) {
 				break;
@@ -490,7 +497,7 @@ DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count) 
 	}
 }
 
-DRESULT TM_FATFS_SD_SDIO_disk_ioctl(BYTE cmd, void *buff) {
+DRESULT fatfs_sd_sdio_disk_ioctl(BYTE cmd, void *buff) {
 	switch (cmd) {
 		case GET_SECTOR_SIZE :     // Get R/W sector size (WORD) 
 			*(WORD *) buff = 512;
@@ -539,23 +546,23 @@ SD_Error SD_Init (void)
 	errorstatus = SD_PowerON ();
 
 	if (errorstatus != SD_OK) {
-		logf ("SD_PowerON failed\r\n");
+		logf ("SD_PowerON failed\n");
     //orbit_helios_fatfs_debug2(1,true);
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
 		return (errorstatus);
 	}
 
-	logf ("SD_PowerON OK\r\n");
+	logf ("SD_PowerON OK\n");
 
 	errorstatus = SD_InitializeCards ();
 
 	if (errorstatus != SD_OK) {
-		logf ("SD_InitializeCards failed\r\n");
+		logf ("SD_InitializeCards failed\n");
 		/*!< CMD Response TimeOut (wait for CMDSENT flag) */
 		return (errorstatus);
 	}
 
-	logf ("SD_InitializeCards OK\r\n");
+	logf ("SD_InitializeCards OK\n");
 
 	/*!< Configure the SDIO peripheral */
 	/*!< SDIO_CK = SDIOCLK / (SDIO_TRANSFER_CLK_DIV + 2) */
@@ -573,15 +580,15 @@ SD_Error SD_Init (void)
 
 	if (errorstatus == SD_OK) {
 		/*----------------- Select Card --------------------------------*/
-		logf ("SD_GetCardInfo OK\r\n");
+		logf ("SD_GetCardInfo OK\n");
 		errorstatus = SD_SelectDeselect ((uint32_t) (SDCardInfo.RCA << 16));
 	}
 	else {
-		logf ("SD_SelectDeselect failed\r\n");
+		logf ("SD_SelectDeselect failed\n");
 	}
 
 	if (errorstatus == SD_OK) {
-		logf ("SD_SelectDeselect OK\r\n");
+		logf ("SD_SelectDeselect OK\n");
 		
 		if (driverConfig.use_4_bit) {
 			errorstatus = SD_EnableWideBusOperation (SDIO_BusWide_4b);
@@ -590,11 +597,11 @@ SD_Error SD_Init (void)
 		}
 	}
 	else {
-		logf ("SD_EnableWideBusOperation failed\r\n");
+		logf ("SD_EnableWideBusOperation failed\n");
 	}
 
 	if (errorstatus == SD_OK) {
-		logf ("SD_EnableWideBusOperation OK\r\n");
+		logf ("SD_EnableWideBusOperation OK\n");
 	}
 
 	return (errorstatus);
@@ -2094,27 +2101,27 @@ SD_Error SD_ProcessIRQSrc (void)
 		TransferError = SD_OK;
 		SDIO_ClearITPendingBit (SDIO_IT_DATAEND);
 		TransferEnd = 1;
-		logf ("SDIO IRQ : TransferEnd = 1, OK\r\n");
+		logf ("SDIO IRQ : TransferEnd = 1, OK\n");
 	} else if (SDIO_GetITStatus (SDIO_IT_DCRCFAIL) != RESET) {
 		SDIO_ClearITPendingBit (SDIO_IT_DCRCFAIL);
 		TransferError = SD_DATA_CRC_FAIL;
-		logf ("SDIO IRQ : SD_DATA_CRC_FAIL\r\n");
+		logf ("SDIO IRQ : SD_DATA_CRC_FAIL\n");
 	} else if (SDIO_GetITStatus (SDIO_IT_DTIMEOUT) != RESET) {
 		SDIO_ClearITPendingBit (SDIO_IT_DTIMEOUT);
 		TransferError = SD_DATA_TIMEOUT;
-		logf ("SDIO IRQ : SD_DATA_TIMEOUT\r\n");
+		logf ("SDIO IRQ : SD_DATA_TIMEOUT\n");
 	} else if (SDIO_GetITStatus (SDIO_IT_RXOVERR) != RESET) {
 		SDIO_ClearITPendingBit (SDIO_IT_RXOVERR);
 		TransferError = SD_RX_OVERRUN;
-		logf ("SDIO IRQ : SD_RX_OVERRUN\r\n");
+		logf ("SDIO IRQ : SD_RX_OVERRUN\n");
 	} else if (SDIO_GetITStatus (SDIO_IT_TXUNDERR) != RESET) {
 		SDIO_ClearITPendingBit (SDIO_IT_TXUNDERR);
 		TransferError = SD_TX_UNDERRUN;
-		logf ("SDIO IRQ : SD_TX_UNDERRUN\r\n");
+		logf ("SDIO IRQ : SD_TX_UNDERRUN\n");
 	} else if (SDIO_GetITStatus (SDIO_IT_STBITERR) != RESET) {
 		SDIO_ClearITPendingBit (SDIO_IT_STBITERR);
 		TransferError = SD_START_BIT_ERR;
-		logf ("SDIO IRQ : SD_START_BIT_ERR\r\n");
+		logf ("SDIO IRQ : SD_START_BIT_ERR\n");
 	}
 
 	SDIO->MASK &= ~(SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_DATAEND | SDIO_IT_TXFIFOHE | SDIO_IT_RXFIFOHF | SDIO_IT_TXUNDERR | SDIO_IT_RXOVERR | SDIO_IT_STBITERR);

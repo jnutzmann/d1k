@@ -101,31 +101,31 @@ typedef enum {
 void TM_FATFS_AddDriver(DISKIO_LowLevelDriver_t* Driver, TM_FATFS_Driver_t DriverName);
 
 /* Drivers function declarations */
-DSTATUS TM_FATFS_SD_SDIO_disk_initialize(void);
+DSTATUS fatfs_sd_sdio_disk_initialize(void);
 DSTATUS TM_FATFS_SD_disk_initialize(void);
 DSTATUS TM_FATFS_USB_disk_initialize(void);
 DSTATUS TM_FATFS_SDRAM_disk_initialize(void);
 DSTATUS TM_FATFS_SPI_FLASH_disk_initialize(void);
 
-DSTATUS TM_FATFS_SD_SDIO_disk_status(void);
+DSTATUS fatfs_sd_sdio_disk_status(void);
 DSTATUS TM_FATFS_SD_disk_status(void);
 DSTATUS TM_FATFS_USB_disk_status(void);
 DSTATUS TM_FATFS_SDRAM_disk_status(void);
 DSTATUS TM_FATFS_SPI_FLASH_disk_status(void);
 
-DRESULT TM_FATFS_SD_SDIO_disk_ioctl(BYTE cmd, void *buff);
+DRESULT fatfs_sd_sdio_disk_ioctl(BYTE cmd, void *buff);
 DRESULT TM_FATFS_SD_disk_ioctl(BYTE cmd, void *buff);
 DRESULT TM_FATFS_USB_disk_ioctl(BYTE cmd, void *buff);
 DRESULT TM_FATFS_SDRAM_disk_ioctl(BYTE cmd, void *buff);
 DRESULT TM_FATFS_SPI_FLASH_disk_ioctl(BYTE cmd, void *buff);
 
-DRESULT TM_FATFS_SD_SDIO_disk_read(BYTE *buff, DWORD sector, UINT count);
+DRESULT fatfs_sd_sdio_disk_read(BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_SD_disk_read(BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_USB_disk_read(BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_SDRAM_disk_read(BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_SPI_FLASH_disk_read(BYTE *buff, DWORD sector, UINT count);
 
-DRESULT TM_FATFS_SD_SDIO_disk_write(const BYTE *buff, DWORD sector, UINT count);
+DRESULT fatfs_sd_sdio_disk_write(const BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_SD_disk_write(const BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_USB_disk_write(const BYTE *buff, DWORD sector, UINT count);
 DRESULT TM_FATFS_SDRAM_disk_write(const BYTE *buff, DWORD sector, UINT count);
