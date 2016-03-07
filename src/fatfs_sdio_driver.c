@@ -311,6 +311,18 @@ bool sd_card_present(void) {
 	}
 }
 
+static void sd_led_on( void ) {
+	if (driverConfig.use_sd_led) {
+		GPIO_SetBits( driverConfig.sd_led_pin.GPIOx, driverConfig.sd_led_pin.GPIO_Pin );
+	}
+}
+
+static void sd_led_off( void ) {
+	if (driverConfig.use_sd_led) {
+		GPIO_ResetBits( driverConfig.sd_led_pin.GPIOx, driverConfig.sd_led_pin.GPIO_Pin );
+	}
+}
+
 DSTATUS fatfs_sd_sdio_disk_initialize(void) {
 	NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -410,6 +422,8 @@ DRESULT fatfs_sd_sdio_disk_read(BYTE *buff, DWORD sector, UINT count) {
 	if ((FATFS_SD_SDIO_Stat & STA_NOINIT)) {
 		return RES_NOTRDY;
 	}
+
+	sd_led_on();
 	
 	if ((DWORD)buff & 3) {
 		DRESULT res = RES_OK;
@@ -427,6 +441,7 @@ DRESULT fatfs_sd_sdio_disk_read(BYTE *buff, DWORD sector, UINT count) {
 			buff += BLOCK_SIZE;
 		}
 
+		sd_led_off();
 		return res;
 	}
 
@@ -439,12 +454,15 @@ DRESULT fatfs_sd_sdio_disk_read(BYTE *buff, DWORD sector, UINT count) {
 
 		while ((State = SD_GetStatus()) == SD_TRANSFER_BUSY);
 
+		sd_led_off();
+
 		if ((State == SD_TRANSFER_ERROR) || (Status != SD_OK)) {
 			return RES_ERROR;
 		} else {
 			return RES_OK;
 		}			
 	} else {
+		sd_led_off();
 		return RES_ERROR;
 	}
 }
@@ -459,6 +477,8 @@ DRESULT fatfs_sd_sdio_disk_write(const BYTE *buff, DWORD sector, UINT count) {
 	if (SD_Detect() != SD_PRESENT) {
 		return RES_NOTRDY;
 	}
+
+	sd_led_on();
 
 	if ((DWORD)buff & 3) {
 		DRESULT res = RES_OK;
@@ -475,6 +495,7 @@ DRESULT fatfs_sd_sdio_disk_write(const BYTE *buff, DWORD sector, UINT count) {
 			buff += BLOCK_SIZE;
 		}
 
+		sd_led_off();
 		return(res);
 	}
 
@@ -487,12 +508,15 @@ DRESULT fatfs_sd_sdio_disk_write(const BYTE *buff, DWORD sector, UINT count) {
 
 		while ((State = SD_GetStatus()) == SD_TRANSFER_BUSY); // BUSY, OK (DONE), ERROR (FAIL)
 
+		sd_led_off();
+
 		if ((State == SD_TRANSFER_ERROR) || (Status != SD_OK)) {
 			return RES_ERROR;
 		} else {
 			return RES_OK;
 		}
 	} else {
+		sd_led_off();
 		return RES_ERROR;
 	}
 }
