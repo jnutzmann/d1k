@@ -460,7 +460,8 @@ typedef struct
  ***************************************************************************/
 
 void sd_driver_config(const SD_DriverConfig_t *config);
-
+bool sd_write_enabled(void);
+bool sd_card_present(void);
 
 extern void SD_LowLevel_DeInit (void);
 extern void SD_LowLevel_Init (void);
