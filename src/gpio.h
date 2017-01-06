@@ -22,7 +22,7 @@ GNU General Public License for more details.
  ***************************************************************************/
 
 #include "stm32f4xx_gpio.h"
-
+#include "stm32f4xx_rcc.h"
 
 /****************************************************************************
  * Typedefs
@@ -35,5 +35,11 @@ typedef struct {
     uint32_t RCC_AHB1Periph;
 } GPIODefStruct_t;
 
+void gpio_init_output(
+    const GPIODefStruct_t *pin,
+    GPIOOType_TypeDef otype, // GPIO_OType_PP, GPIO_OType_OD
+    GPIOPuPd_TypeDef pupd,   // GPIO_PuPd_NOPULL, GPIO_PuPd_UP, GPIO_PuPd_DOWN
+    GPIOSpeed_TypeDef speed  //GPIO_Speed_2MHz (2, 25, 50, 100)
+);
 
 #endif
