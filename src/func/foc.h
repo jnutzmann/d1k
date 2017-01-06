@@ -57,5 +57,6 @@ void FOC_InvPark   ( focControl_t *foc );
 void FOC_InvClarke ( focControl_t *foc );
 void FOC_SVM       ( focControl_t *foc );
 
+float FOC_WrapAngle( float angle );
 
 #endif /* FOC_H_ */

@@ -138,3 +138,11 @@ void FOC_SVM( focControl_t *foc )
 	foc->V2 = (foc->Vb - foc->Vk) + halfVbus;
 	foc->V3 = (foc->Vc - foc->Vk) + halfVbus;
 }
+
+float FOC_WrapAngle( float angle )
+{
+  while (angle > 180.0f)  { angle -= 360.0f; }
+  while (angle < -180.0f) { angle += 360.0f; }
+
+  return angle;
+}
