@@ -18,9 +18,23 @@ GNU General Public License for more details.
 #include "pi.h"
 #include "math_limits.h"
 
-void  PI_Init    ( pi_t *pi )
+void  PI_Init    ( pi_t *pi, float dt )
 {
-	pi->accumulator = 0;
+  pi->dt = dt;
+
+	pi->accumulator = 0.0f;
+  pi->reference = 0.0f;
+  pi->measured = 0.0f;
+  pi->accumulator = 0.0f;
+  pi->kp = 0.0f;
+  pi->ki = 0.0f;
+  pi->outMax = 0.0f;
+  pi->outMin = 0.0f;
+}
+
+void PI_Reset ( pi_t *pi )
+{
+  pi->accumulator = 0.0f;
 }
 
 float PI_Control ( pi_t *pi )

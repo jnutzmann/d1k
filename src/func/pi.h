@@ -28,7 +28,8 @@ typedef struct {
 	float outMin;
 } pi_t;
 
-void  PI_Init    ( pi_t *pi );
+void  PI_Init    ( pi_t *pi, float dt );
+void  PI_Reset   ( pi_t *pi );
 float PI_Control ( pi_t *pi );
 
 #endif /* PI_H_ */
